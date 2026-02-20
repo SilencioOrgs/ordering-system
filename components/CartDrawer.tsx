@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Minus, MapPin, CreditCard, Banknote, Calendar, CheckCircle2, Truck, Store, Map } from "lucide-react";
+import { X, Plus, Minus, MapPin, CreditCard, Banknote, Calendar, CheckCircle2, Truck, Store, Map, Upload, QrCode } from "lucide-react";
 import Image from "next/image";
 import { Product } from "@/lib/data";
+import LocationPicker from "./LocationPicker";
 
 export interface CartItem extends Product {
     quantity: number;
@@ -30,12 +31,26 @@ export default function CartDrawer({
     const [deliveryMode, setDeliveryMode] = useState<"delivery" | "pickup">("delivery");
     const [showMapModal, setShowMapModal] = useState(false);
     const [address, setAddress] = useState("Tap to set location map");
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentStep, setPaymentStep] = useState<"qr" | "upload">("qr");
 
     const totalAmount = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
     const shippingFee = deliveryMode === "delivery" ? 50 : 0;
     const totalPayment = totalAmount + shippingFee;
 
     const handlePlaceOrder = () => {
+        if (selectedPayment === "online") {
+            setShowPaymentModal(true);
+            setPaymentStep("qr");
+            return;
+        }
+
+        // Standard COD flow
+        triggerSuccessState();
+    };
+
+    const triggerSuccessState = () => {
+        setShowPaymentModal(false);
         setShowSuccess(true);
         setTimeout(() => {
             setShowSuccess(false);
@@ -272,27 +287,108 @@ export default function CartDrawer({
                             className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl z-10 flex flex-col items-center"
                         >
                             <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-4 w-full text-left">Pin Location</h3>
-                            <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-emerald-50 mb-6 border border-slate-100">
-                                <Image
-                                    src="https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=800&auto=format&fit=crop"
-                                    alt="Map Simulation"
-                                    fill
-                                    className="object-cover opacity-80 mix-blend-multiply"
+                            <div className="relative w-full h-80 rounded-2xl overflow-hidden bg-emerald-50 mb-6 border border-slate-100 flex-shrink-0">
+                                <LocationPicker
+                                    onLocationSelect={(addr, lat, lng) => {
+                                        setAddress(addr);
+                                        setShowMapModal(false);
+                                    }}
                                 />
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <MapPin className="w-10 h-10 text-emerald-600 drop-shadow-md -mt-5" strokeWidth={2} fill="white" />
-                                </div>
                             </div>
                             <motion.button
                                 whileTap={{ scale: 0.96 }}
-                                onClick={() => {
-                                    setAddress("Santa Cruz, Laguna");
-                                    setShowMapModal(false);
-                                }}
-                                className="w-full bg-emerald-700 text-white font-semibold rounded-xl py-3 shadow-md shadow-emerald-700/20 hover:bg-emerald-800 transition-colors"
+                                onClick={() => setShowMapModal(false)}
+                                className="w-full text-slate-500 font-semibold rounded-xl py-3 hover:bg-slate-50 transition-colors"
                             >
-                                Confirm Location
+                                Cancel
                             </motion.button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Online Payment Modal Flow */}
+            <AnimatePresence>
+                {showPaymentModal && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowPaymentModal(false)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl z-10 flex flex-col items-center"
+                        >
+                            <div className="absolute top-4 right-4">
+                                <button
+                                    onClick={() => setShowPaymentModal(false)}
+                                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {paymentStep === "qr" ? (
+                                <>
+                                    <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-4 mt-2">
+                                        <QrCode className="w-8 h-8 text-emerald-600" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-1 text-center">Scan to Pay</h3>
+                                    <p className="text-slate-500 text-sm mb-6 text-center">Send exactly <strong className="text-emerald-700 font-bold">₱{totalPayment}</strong> to proceed.</p>
+
+                                    <div className="w-48 h-48 bg-slate-100 rounded-2xl mb-6 flex items-center justify-center border-2 border-dashed border-slate-300 relative overflow-hidden">
+                                        {/* Placeholder QR Image - swap with real one later */}
+                                        <Image src="/placeholder.png" alt="QR Code" fill className="object-cover opacity-30 mix-blend-multiply" />
+                                        <QrCode className="w-12 h-12 text-slate-400 absolute" />
+                                    </div>
+
+                                    <div className="w-full bg-slate-50 rounded-xl p-4 mb-6 border border-slate-100">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Account Name</span>
+                                            <span className="text-sm font-bold text-slate-900">Ate Ai</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Account Number</span>
+                                            <span className="text-sm font-bold text-slate-900 tracking-tight font-mono">+63 912 345 6789</span>
+                                        </div>
+                                    </div>
+
+                                    <motion.button
+                                        whileTap={{ scale: 0.96 }}
+                                        onClick={() => setPaymentStep("upload")}
+                                        className="w-full bg-emerald-700 text-white font-bold rounded-xl py-4 shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors"
+                                    >
+                                        I have paid, Next Step
+                                    </motion.button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 mt-2">
+                                        <Upload className="w-8 h-8 text-blue-600" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-1 text-center">Upload Receipt</h3>
+                                    <p className="text-slate-500 text-sm mb-6 text-center">Please attach a screenshot of your successful transaction.</p>
+
+                                    <label className="w-full h-32 bg-slate-50 border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/50 transition-colors rounded-2xl mb-6 flex flex-col items-center justify-center cursor-pointer group">
+                                        <Upload className="w-6 h-6 text-slate-400 group-hover:text-emerald-500 mb-2 transition-colors" strokeWidth={2} />
+                                        <span className="text-sm font-medium text-slate-600 group-hover:text-emerald-700 transition-colors">Tap to select photo</span>
+                                        <input type="file" className="hidden" accept="image/*" />
+                                    </label>
+
+                                    <motion.button
+                                        whileTap={{ scale: 0.96 }}
+                                        onClick={triggerSuccessState}
+                                        className="w-full bg-emerald-700 text-white font-bold rounded-xl py-4 shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors"
+                                    >
+                                        Submit Order
+                                    </motion.button>
+                                </>
+                            )}
                         </motion.div>
                     </div>
                 )}

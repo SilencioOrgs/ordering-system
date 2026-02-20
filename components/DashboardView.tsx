@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ShoppingBag, Leaf, Plus, User, Star, X, MapPin, CreditCard, Settings, HelpCircle, ChevronRight, Store, ReceiptText } from "lucide-react";
+import { Search, ShoppingBag, Leaf, ShoppingCart, User, Star, X, MapPin, CreditCard, Settings, HelpCircle, ChevronRight, Store, ReceiptText, Truck } from "lucide-react";
 import Image from "next/image";
 import { products, categories, Product } from "@/lib/data";
+import LocationPicker from "./LocationPicker";
+import ProductModal from "./ProductModal";
 
 const promoSlides = [
-    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1000&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=1000&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000&auto=format&fit=crop"
+    "/images/590554498_1300306938783151_7499415934952873_n.jpg",
+    "/images/591286853_1300306458783199_3119486838764724933_n.jpg",
+    "/images/591396000_1300306605449851_5261874470759623080_n.jpg"
 ];
 
 interface DashboardViewProps {
@@ -24,8 +26,11 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
     const [searchQuery, setSearchQuery] = useState("");
     const [showToast, setShowToast] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
+    const [showMapModal, setShowMapModal] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
     const [activeTab, setActiveTab] = useState<"home" | "orders" | "profile">("home");
+    const [savedPlaces, setSavedPlaces] = useState<string>("Pin a location to save your place.");
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -191,9 +196,9 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: idx * 0.05, duration: 0.3 }}
-                                        className="bg-white rounded-2xl border border-slate-200 shadow-md hover:shadow-lg transition-all overflow-hidden flex flex-row sm:flex-col group"
+                                        className="bg-white rounded-3xl p-3 sm:p-4 shadow-[0_12px_40px_rgba(0,0,0,0.12)] flex flex-row sm:flex-col gap-3 sm:gap-0 group transition-all border border-slate-100/50 hover:shadow-[0_20px_60px_rgba(0,0,0,0.16)] sm:hover:-translate-y-1"
                                     >
-                                        <div className="w-32 sm:w-full shrink-0 aspect-square sm:aspect-[4/3] relative">
+                                        <div className="w-[110px] h-[110px] sm:w-full sm:h-auto sm:aspect-[4/3] relative rounded-2xl overflow-hidden bg-slate-100 shrink-0">
                                             <Image
                                                 src={product.image}
                                                 alt={product.name}
@@ -201,33 +206,74 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                                 className="object-cover"
                                             />
                                             {product.isBestSeller && (
-                                                <div className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10">
-                                                    Best Seller
+                                                <div className="hidden sm:flex absolute top-3 left-3 bg-emerald-800/90 backdrop-blur-md text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg shadow-sm z-10 items-center gap-1.5 border border-emerald-700/50">
+                                                    <Star className="w-3.5 h-3.5 fill-white" /> Best Seller
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="p-3 sm:p-4 flex-1 flex flex-col text-left items-start">
-                                            <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight line-clamp-1">
+                                        <div className="flex-1 flex flex-col text-left items-start sm:pt-4">
+                                            <h3 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight line-clamp-1 w-full">
                                                 {product.name}
                                             </h3>
-                                            <div className="flex items-center gap-1 mt-1 mb-1">
-                                                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                                                <span className="font-bold text-slate-700 text-sm">4.8</span>
-                                                <span className="text-slate-400 text-xs">(120+)</span>
+
+                                            <div className="flex items-center gap-1 mt-0.5 sm:mt-1 text-[11px] sm:text-sm">
+                                                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                                                <span className="font-bold text-slate-700">4.9 <span className="font-normal text-slate-500">(500+)</span></span>
+                                                <span className="text-slate-300 mx-1">•</span>
+                                                <span className="text-slate-500 line-clamp-1">{product.category}</span>
                                             </div>
-                                            <p className="text-xs sm:text-sm text-slate-500 line-clamp-2 mt-1">
+
+                                            <div className="flex sm:hidden items-center gap-1 mt-0.5 text-[11px] text-slate-500">
+                                                <span className="text-emerald-600 font-bold shrink-0">Free</span>
+                                                <span className="line-through text-slate-400 shrink-0">₱45.00</span>
+                                                <span className="text-slate-300 mx-1 text-[8px]">•</span>
+                                                <span className="truncate">From 25 mins</span>
+                                            </div>
+
+                                            <p className="hidden sm:block text-sm text-slate-500 line-clamp-2 mt-2 w-full font-medium leading-relaxed">
                                                 The top choice among all our customers, delicious, authentic and a part of an amazing experience!
                                             </p>
-                                            <div className="flex justify-between items-center mt-auto w-full pt-3 sm:pt-4">
-                                                <div className="text-base sm:text-lg font-extrabold text-emerald-700">
-                                                    ₱{product.price}
+
+                                            <div className="flex justify-between items-end sm:items-center w-full mt-auto sm:pt-4">
+                                                <div className="text-base sm:text-xl font-black text-slate-900 tracking-tight">
+                                                    ₱{product.price}.00
                                                 </div>
+                                                <div className="hidden sm:flex gap-0.5 items-center">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <Star key={i} className={`w-3.5 h-3.5 ${i < 4 ? "text-amber-400 fill-amber-400" : "text-amber-400/30 fill-amber-400/30"}`} />
+                                                    ))}
+                                                    <span className="text-sm font-bold text-slate-700 ml-1.5">4.9</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-2 w-full mt-2 sm:mt-5">
+                                                <motion.button
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => handleAddToCart(product)}
+                                                    className="flex sm:hidden w-full items-center gap-3 border border-slate-200 rounded-xl py-1.5 px-2 hover:bg-slate-50 transition-colors"
+                                                >
+                                                    <div className="bg-emerald-100 p-1.5 rounded-lg flex items-center justify-center shrink-0">
+                                                        <ShoppingBag className="w-4 h-4 text-emerald-700" />
+                                                    </div>
+                                                    <div className="flex flex-col text-left justify-center py-0.5">
+                                                        <span className="text-[11px] font-bold text-slate-800 leading-none">Add to Cart</span>
+                                                        <span className="text-[10px] text-slate-500 leading-none mt-1">Free delivery fee</span>
+                                                    </div>
+                                                </motion.button>
+
+                                                <motion.button
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => setSelectedProduct(product)}
+                                                    className="hidden sm:block flex-1 bg-white text-emerald-700 border-2 border-emerald-700 font-bold py-3 rounded-[14px] hover:bg-emerald-50 transition-colors text-sm shadow-sm"
+                                                >
+                                                    More details
+                                                </motion.button>
                                                 <motion.button
                                                     whileTap={{ scale: 0.95 }}
                                                     onClick={() => handleAddToCart(product)}
-                                                    className="bg-emerald-50 text-emerald-700 hover:bg-emerald-700 hover:text-white p-2 sm:p-2.5 rounded-xl transition-colors"
+                                                    className="hidden sm:flex bg-emerald-700 text-white p-3 rounded-[14px] hover:bg-emerald-800 transition-colors items-center justify-center shrink-0 w-12 h-12 shadow-md shadow-emerald-700/20"
                                                 >
-                                                    <Plus className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.5} />
+                                                    <ShoppingCart className="w-5 h-5" strokeWidth={2.5} />
                                                 </motion.button>
                                             </div>
                                         </div>
@@ -270,16 +316,19 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
 
                         <div className="bg-white shadow-sm w-full rounded-none md:rounded-2xl overflow-hidden mb-2">
                             {[
-                                { icon: Star, label: "Rewards" },
-                                { icon: MapPin, label: "Saved Places" },
-                                { icon: CreditCard, label: "Payment Methods" },
-                                { icon: Settings, label: "Settings" },
-                                { icon: HelpCircle, label: "Help Centre" },
+                                { icon: Star, label: "Rewards", action: () => { } },
+                                { icon: MapPin, label: "Saved Places", action: () => setShowMapModal(true) },
+                                { icon: CreditCard, label: "Payment Methods", action: () => { } },
+                                { icon: Settings, label: "Settings", action: () => { } },
+                                { icon: HelpCircle, label: "Help Centre", action: () => { } },
                             ].map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center p-4 py-4 md:py-5 border-b border-slate-100 last:border-0 active:bg-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
+                                <div key={idx} onClick={item.action} className="flex justify-between items-center p-4 py-4 md:py-5 border-b border-slate-100 last:border-0 active:bg-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
                                     <div className="flex items-center gap-4 text-slate-700 font-medium">
                                         <item.icon className="w-5 h-5 text-slate-600" />
-                                        {item.label}
+                                        <div className="flex flex-col">
+                                            <span>{item.label}</span>
+                                            {item.label === "Saved Places" && <span className="text-xs text-slate-400 font-normal">{savedPlaces}</span>}
+                                        </div>
                                     </div>
                                     <ChevronRight className="w-5 h-5 text-slate-300" />
                                 </div>
@@ -388,6 +437,57 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Map Simulation Modal */}
+            <AnimatePresence>
+                {showMapModal && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowMapModal(false)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl z-10 flex flex-col items-center"
+                        >
+                            <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-4 w-full text-left">Manage Saved Places</h3>
+                            <div className="relative w-full h-80 rounded-2xl overflow-hidden bg-emerald-50 mb-6 border border-slate-100 flex-shrink-0">
+                                <LocationPicker
+                                    onLocationSelect={(addr, lat, lng) => {
+                                        setSavedPlaces(addr);
+                                        setShowMapModal(false);
+                                    }}
+                                />
+                            </div>
+                            <motion.button
+                                whileTap={{ scale: 0.96 }}
+                                onClick={() => setShowMapModal(false)}
+                                className="w-full text-slate-500 font-semibold rounded-xl py-3 hover:bg-slate-50 transition-colors"
+                            >
+                                Close
+                            </motion.button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            {/* Product Details Modal */}
+            <ProductModal
+                product={selectedProduct}
+                isOpen={!!selectedProduct}
+                onClose={() => setSelectedProduct(null)}
+                onAction={() => {
+                    if (selectedProduct) {
+                        handleAddToCart(selectedProduct);
+                        setSelectedProduct(null);
+                    }
+                }}
+                actionText="Add to Cart"
+            />
         </motion.div>
     );
 }

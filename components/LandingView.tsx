@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-
-
 import { motion, AnimatePresence } from "framer-motion";
-import { Leaf, Truck, ShieldCheck, ArrowRight, ShoppingBag, X, Plus } from "lucide-react";
+import { Leaf, Truck, ShieldCheck, ArrowRight, ShoppingCart, Star, ChevronDown, X, ShoppingBag } from "lucide-react";
 
 import Image from "next/image";
-import { products } from "@/lib/data";
+import { products, categories, Product } from "@/lib/data";
+import ProductModal from "./ProductModal";
 
 interface LandingViewProps {
     onLogin: () => void;
@@ -15,6 +14,8 @@ interface LandingViewProps {
 
 export default function LandingView({ onLogin }: LandingViewProps) {
     const [showLoginModal, setShowLoginModal] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [openFaq, setOpenFaq] = useState<number | null>(null);
     const bestSellers = products.filter((p) => p.isBestSeller).slice(0, 4);
 
     return (
@@ -24,7 +25,7 @@ export default function LandingView({ onLogin }: LandingViewProps) {
             exit={{ opacity: 0 }}
             className="min-h-screen bg-[#FDFBF7]"
         >
-            {/* Header */}
+            {/* 1. Navbar */}
             <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-emerald-50">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -37,9 +38,10 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                     </div>
 
                     <nav className="hidden md:flex items-center gap-8 text-slate-500 font-medium tracking-tight">
-                        <a href="#story" className="hover:text-emerald-700 transition-colors">Our Story</a>
-                        <a href="#menu" className="hover:text-emerald-700 transition-colors">Menu</a>
-                        <a href="#features" className="hover:text-emerald-700 transition-colors">Features</a>
+                        <a href="#hero" className="hover:text-emerald-700 transition-colors">Home</a>
+                        <a href="#bestsellers" className="hover:text-emerald-700 transition-colors">Menu</a>
+                        <a href="#about" className="hover:text-emerald-700 transition-colors">About Us</a>
+                        <a href="#faq" className="hover:text-emerald-700 transition-colors">FAQ</a>
                     </nav>
 
                     <div className="flex items-center gap-4">
@@ -60,8 +62,8 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                 </div>
             </header>
 
-            {/* Hero Section */}
-            <section id="story" className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24">
+            {/* 2. Hero Section */}
+            <section id="hero" className="max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24">
                 <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div className="space-y-8">
                         <h1 className="text-5xl md:text-6xl font-bold text-slate-900 tracking-tight leading-[1.1]">
@@ -71,6 +73,11 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                         <p className="text-lg text-slate-500 max-w-md leading-relaxed">
                             Experience the true taste of Filipino traditions. Handcrafted daily using locally sourced, organic ingredients passed directly from our farm to your table.
                         </p>
+                        <ul className="space-y-2 text-slate-600 font-medium pb-2">
+                            <li className="flex items-center gap-2"><ArrowRight className="w-4 h-4 text-emerald-600" /> 100% Organic Ingredients</li>
+                            <li className="flex items-center gap-2"><ArrowRight className="w-4 h-4 text-emerald-600" /> Passed down family recipes</li>
+                            <li className="flex items-center gap-2"><ArrowRight className="w-4 h-4 text-emerald-600" /> Delivered fresh daily</li>
+                        </ul>
                         <div className="flex flex-wrap gap-4">
                             <motion.button
                                 whileTap={{ scale: 0.96 }}
@@ -79,20 +86,11 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                             >
                                 Order Now <ArrowRight className="w-5 h-5" strokeWidth={1.5} />
                             </motion.button>
-                            <motion.button
-                                whileTap={{ scale: 0.96 }}
-                                onClick={() => {
-                                    document.getElementById("menu")?.scrollIntoView({ behavior: "smooth" });
-                                }}
-                                className="bg-emerald-50 text-emerald-800 font-semibold rounded-full px-8 py-3.5 hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2 text-lg"
-                            >
-                                View Menu
-                            </motion.button>
                         </div>
                     </div>
                     <div className="relative h-[400px] md:h-[500px] w-full rounded-[2.5rem] overflow-hidden shadow-2xl shadow-emerald-900/10">
                         <Image
-                            src="https://images.unsplash.com/photo-1512485800893-b08ec1ea59b1?q=80&w=1000&auto=format&fit=crop"
+                            src="/images/591464953_1300306415449870_2950367490494058842_n.jpg"
                             alt="Delicious Kakanin"
                             fill
                             className="object-cover"
@@ -102,73 +100,111 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                 </div>
             </section>
 
-            {/* Features Row */}
-            <section id="features" className="bg-white py-16 border-y border-emerald-50">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6">
-                    <div className="grid sm:grid-cols-3 gap-8">
-                        {[
-                            { icon: Leaf, title: "100% Organic", desc: "Sourced from local partner farms" },
-                            { icon: Truck, title: "Fast Delivery", desc: "Freshness delivered to your door" },
-                            { icon: ShieldCheck, title: "Quality Guaranteed", desc: "Made with love and tradition" },
-                        ].map((feature, idx) => (
-                            <div key={idx} className="flex flex-col items-center text-center space-y-4 p-6 rounded-3xl hover:bg-[#FDFBF7] transition-colors group cursor-default">
-                                <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center group-hover:bg-emerald-100 transition-colors group-hover:scale-110 duration-300">
-                                    <feature.icon className="w-8 h-8 text-emerald-700" strokeWidth={1.5} />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-slate-900 tracking-tight">{feature.title}</h3>
-                                    <p className="text-slate-500 mt-2">{feature.desc}</p>
-                                </div>
+            {/* 3. Social Proof 1 (Logos) */}
+            <section className="border-y border-emerald-50 bg-white py-10">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+                    <p className="text-sm font-semibold text-slate-400 tracking-widest uppercase mb-6">Recommended By</p>
+                    <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                        {/* Placeholder Logos */}
+                        {["Business Time", "The Daily Foodie", "Local Bites", "Manila Eats", "Morning Brew"].map((logo, idx) => (
+                            <div key={idx} className="text-xl font-black tracking-tighter text-slate-800">
+                                {logo.toUpperCase()}
                             </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* Best Sellers */}
-            <section id="menu" className="py-20 max-w-6xl mx-auto px-4 sm:px-6">
-                <div className="flex justify-between items-end mb-10">
-                    <div>
-                        <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Our Best Sellers</h2>
-                        <p className="text-slate-500 mt-2 text-lg">Taste our most loved recipes</p>
-                    </div>
+            {/* 4. Best Sellers */}
+            <section id="bestsellers" className="py-20 max-w-6xl mx-auto px-4 sm:px-6">
+                <div className="text-center md:text-left mb-10">
+                    <h2 className="text-3xl font-bold text-slate-900 tracking-tight uppercase">Best Sellers</h2>
+                    <p className="text-slate-500 mt-2 text-lg">Taste our most loved recipes</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {bestSellers.map((product) => (
                         <motion.div
                             key={product.id}
-                            whileHover={{ y: -8 }}
-                            className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-all"
+                            whileHover={{ y: -4 }}
+                            className="bg-white rounded-3xl p-3 sm:p-4 shadow-[0_12px_40px_rgba(0,0,0,0.12)] flex flex-row sm:flex-col gap-3 sm:gap-0 group transition-all border border-slate-100/50 hover:shadow-[0_20px_60px_rgba(0,0,0,0.16)] sm:hover:-translate-y-1"
                         >
-                            <div className="aspect-[4/3] w-full relative">
+                            <div className="w-[110px] h-[110px] sm:w-full sm:h-auto sm:aspect-[4/3] relative rounded-2xl overflow-hidden bg-slate-100 shrink-0">
                                 <Image
                                     src={product.image}
                                     alt={product.name}
                                     fill
                                     className="object-cover"
                                 />
-                                <div className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10">
-                                    Best Seller
-                                </div>
+                                {product.isBestSeller && (
+                                    <div className="hidden sm:flex absolute top-3 left-3 bg-emerald-800/90 backdrop-blur-md text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg shadow-sm z-10 items-center gap-1.5 border border-emerald-700/50">
+                                        <Star className="w-3.5 h-3.5 fill-white" /> Best Seller
+                                    </div>
+                                )}
                             </div>
-                            <div className="p-4 flex-1 flex flex-col text-left items-start">
-                                <h3 className="text-lg font-bold text-slate-900 tracking-tight line-clamp-1">
+                            <div className="flex-1 flex flex-col text-left items-start sm:pt-4">
+                                <h3 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight line-clamp-1 w-full">
                                     {product.name}
                                 </h3>
-                                <p className="text-sm text-slate-500 line-clamp-2 mt-1">
+
+                                <div className="flex items-center gap-1 mt-0.5 sm:mt-1 text-[11px] sm:text-sm">
+                                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                                    <span className="font-bold text-slate-700">4.9 <span className="font-normal text-slate-500">(500+)</span></span>
+                                    <span className="text-slate-300 mx-1">•</span>
+                                    <span className="text-slate-500 line-clamp-1">{product.category}</span>
+                                </div>
+
+                                <div className="flex sm:hidden items-center gap-1 mt-0.5 text-[11px] text-slate-500">
+                                    <span className="text-emerald-600 font-bold shrink-0">Free</span>
+                                    <span className="line-through text-slate-400 shrink-0">₱45.00</span>
+                                    <span className="text-slate-300 mx-1 text-[8px]">•</span>
+                                    <span className="truncate">From 25 mins</span>
+                                </div>
+
+                                <p className="hidden sm:block text-sm text-slate-500 line-clamp-2 mt-2 w-full font-medium leading-relaxed">
                                     The top choice among all our customers, delicious, authentic and a part of an amazing experience!
                                 </p>
-                                <div className="flex justify-between items-center mt-auto w-full pt-4">
-                                    <div className="text-lg font-extrabold text-emerald-700">
-                                        ₱{product.price}
+
+                                <div className="flex justify-between items-end sm:items-center w-full mt-auto sm:pt-4">
+                                    <div className="text-base sm:text-xl font-black text-slate-900 tracking-tight">
+                                        ₱{product.price}.00
                                     </div>
+                                    <div className="hidden sm:flex gap-0.5 items-center">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star key={i} className={`w-3.5 h-3.5 ${i < 4 ? "text-amber-400 fill-amber-400" : "text-amber-400/30 fill-amber-400/30"}`} />
+                                        ))}
+                                        <span className="text-sm font-bold text-slate-700 ml-1.5">4.9</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-2 w-full mt-2 sm:mt-5">
+                                    <motion.button
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => setShowLoginModal(true)}
+                                        className="flex sm:hidden w-full items-center gap-3 border border-slate-200 rounded-xl py-1.5 px-2 hover:bg-slate-50 transition-colors"
+                                    >
+                                        <div className="bg-emerald-100 p-1.5 rounded-lg flex items-center justify-center shrink-0">
+                                            <ShoppingBag className="w-4 h-4 text-emerald-700" />
+                                        </div>
+                                        <div className="flex flex-col text-left justify-center py-0.5">
+                                            <span className="text-[11px] font-bold text-slate-800 leading-none">Add to Cart</span>
+                                            <span className="text-[10px] text-slate-500 leading-none mt-1">Free delivery fee</span>
+                                        </div>
+                                    </motion.button>
+
+                                    <motion.button
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => setSelectedProduct(product)}
+                                        className="hidden sm:block flex-1 bg-white text-emerald-700 border-2 border-emerald-700 font-bold py-3 rounded-[14px] hover:bg-emerald-50 transition-colors text-sm shadow-sm"
+                                    >
+                                        More details
+                                    </motion.button>
                                     <motion.button
                                         whileTap={{ scale: 0.95 }}
                                         onClick={() => setShowLoginModal(true)}
-                                        className="bg-emerald-50 text-emerald-700 hover:bg-emerald-700 hover:text-white p-2.5 rounded-xl transition-colors"
+                                        className="hidden sm:flex bg-emerald-700 text-white p-3 rounded-[14px] hover:bg-emerald-800 transition-colors items-center justify-center shrink-0 w-12 h-12 shadow-md shadow-emerald-700/20"
                                     >
-                                        <Plus className="w-5 h-5" strokeWidth={2.5} />
+                                        <ShoppingCart className="w-5 h-5" strokeWidth={2.5} />
                                     </motion.button>
                                 </div>
                             </div>
@@ -177,15 +213,251 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                 </div>
             </section>
 
-            {/* Footer */}
-            <footer className="bg-white py-12 border-t border-emerald-50 text-center text-slate-500">
-                <div className="flex items-center justify-center gap-2 mb-4">
-                    <Leaf className="w-5 h-5 text-emerald-700" strokeWidth={1.5} />
-                    <span className="font-bold text-lg tracking-tight text-slate-900">
-                        Ate Ai's Kitchen
-                    </span>
+            {/* 5. Categories */}
+            <section className="bg-emerald-50 py-20 overflow-hidden">
+                <div className="w-full">
+                    <div className="text-center mb-10">
+                        <h2 className="text-3xl font-bold text-slate-900 tracking-tight uppercase">Product Categories</h2>
+                        <p className="text-slate-500 mt-2 text-lg">Browse our delectable selections</p>
+                    </div>
+                    <div className="relative w-full">
+                        {/* 
+                            We create two identical sliding tracks side by side to ensure an infinite seamless loop.
+                            The distance they travel and speed determines how smooth the scroll is.
+                        */}
+                        <motion.div
+                            className="flex gap-4 px-4 w-max"
+                            animate={{
+                                x: ["0%", "-50%"]
+                            }}
+                            transition={{
+                                ease: "linear",
+                                duration: 25,
+                                repeat: Infinity,
+                            }}
+                        >
+                            {[...Array(2)].map((_, groupIdx) => (
+                                <div key={groupIdx} className="flex gap-4">
+                                    {/* Primary Array */}
+                                    {[
+                                        { name: "Puto", img: "/images/cat_puto.png" },
+                                        { name: "Suman", img: "/images/cat_suman.png" },
+                                        { name: "Kalamay", img: "/images/cat_kalamay.png" },
+                                        { name: "Sweets", img: "/images/cat_sweets.png" },
+                                        { name: "Drinks", img: "/images/cat_drinks.png" },
+                                        { name: "Merienda", img: "/images/cat_merienda.png" },
+                                    ].map((cat, idx) => (
+                                        <div key={`${groupIdx}-${idx}`} className="relative bg-white rounded-[2rem] p-2 text-center shadow-sm cursor-pointer hover:shadow-md transition-all border border-slate-100 flex flex-col items-center justify-end gap-3 h-48 w-40 shrink-0 overflow-hidden group">
+                                            <div className="absolute inset-x-2 top-2 bottom-12 rounded-[1.5rem] overflow-hidden">
+                                                <Image src={cat.img} alt={cat.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+                                            </div>
+                                            <span className="font-bold text-slate-800 z-10 mb-2">{cat.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </motion.div>
+
+                        {/* Gradient fades on edges */}
+                        <div className="absolute top-0 bottom-0 left-0 w-16 bg-gradient-to-r from-emerald-50 to-transparent z-10 pointer-events-none" />
+                        <div className="absolute top-0 bottom-0 right-0 w-16 bg-gradient-to-l from-emerald-50 to-transparent z-10 pointer-events-none" />
+                    </div>
                 </div>
-                <p>&copy; {new Date().getFullYear()} Ate Ai's Kitchen. All rights reserved.</p>
+            </section>
+
+            {/* 6. Social Proof 2 (Testimonials) */}
+            <section className="py-20 max-w-6xl mx-auto px-4 sm:px-6">
+                <div className="text-center mb-12">
+                    <h2 className="text-3xl font-bold text-slate-900 tracking-tight uppercase">Customer Reviews</h2>
+                    <div className="flex justify-center gap-1 mt-3 shadow-sm">
+                        {[...Array(5)].map((_, i) => (
+                            <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />
+                        ))}
+                    </div>
+                    <p className="text-slate-500 mt-2 font-medium">Over 500+ satisfied customers</p>
+                </div>
+                <div className="grid md:grid-cols-3 gap-8">
+                    {[
+                        { name: "Maria Santos", review: "Absolutely delicious! The flavors bring me right back to my childhood. The delivery was fast and the food arrived perfectly warm. Will definitely order again." },
+                        { name: "Juan Dela Cruz", review: "The biko is the best I have ever had. The latik is generous and the rice is perfectly sticky. You can tell they use real authentic ingredients." },
+                        { name: "Ana Reyes", review: "Our family gathering was a hit because of the party trays! Everyone kept asking where I bought the sapin-sapin. 10/10 recommend." }
+                    ].map((review, i) => (
+                        <div key={i} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm relative hover:shadow-md transition-shadow">
+                            <div className="flex gap-1 mb-4 shadow-sm">
+                                {[...Array(5)].map((_, sIdx) => (
+                                    <Star key={sIdx} className="w-4 h-4 text-amber-400 fill-amber-400" />
+                                ))}
+                            </div>
+                            <p className="text-slate-600 mb-6 font-medium italic">"{review.review}"</p>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500">
+                                    {review.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <p className="font-bold text-slate-900 text-sm">{review.name}</p>
+                                    <p className="text-emerald-600 text-xs font-medium">Verified Buyer</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* 7. Why Choose Us (Brand Benefits) */}
+            <section className="bg-white py-24 border-y border-emerald-50">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 grid md:grid-cols-2 gap-16 items-center">
+                    <div className="relative h-[450px] rounded-3xl overflow-hidden shadow-2xl shadow-emerald-900/10">
+                        <Image src="/images/605127122_1318326396981205_357002003061011921_n.jpg" alt="Placeholder" fill className="object-cover" />
+                    </div>
+                    <div className="space-y-8">
+                        <div>
+                            <h2 className="text-3xl font-bold text-slate-900 tracking-tight uppercase">Why Choose Ate Ai's Kitchen?</h2>
+                            <p className="text-slate-500 mt-2 text-lg">Authentic flavors, fresh ingredients, delivered with care.</p>
+                        </div>
+                        <div className="space-y-6">
+                            {[
+                                { icon: Leaf, title: "100% Organic", desc: "Sourced from local partner farms" },
+                                { icon: Truck, title: "Fast Delivery", desc: "Freshness delivered to your door" },
+                                { icon: ShieldCheck, title: "Quality Guaranteed", desc: "Made with love and tradition" },
+                            ].map((feature, idx) => (
+                                <div key={idx} className="flex flex-col items-center text-center space-y-4 p-6 rounded-3xl hover:bg-[#FDFBF7] transition-colors group cursor-default">
+                                    <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center group-hover:bg-emerald-100 transition-colors group-hover:scale-110 duration-300">
+                                        <feature.icon className="w-8 h-8 text-emerald-700" strokeWidth={1.5} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-900 tracking-tight">{feature.title}</h3>
+                                        <p className="text-slate-500 mt-2">{feature.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <motion.button
+                            whileTap={{ scale: 0.96 }}
+                            onClick={() => setShowLoginModal(true)}
+                            className="bg-emerald-700 text-white font-semibold rounded-full px-8 py-3.5 hover:bg-emerald-800 transition-colors shadow-sm shadow-emerald-700/20"
+                        >
+                            Lorem ipsum dolor sit
+                        </motion.button>
+                    </div>
+                </div>
+            </section>
+
+            {/* 8. Social Proof 3 (UGC / Photos) */}
+            <section className="bg-slate-50 py-20">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+                    <h2 className="text-3xl font-bold text-slate-900 tracking-tight uppercase mb-2">Our Community</h2>
+                    <p className="text-slate-500 mb-10 text-lg">See how others are enjoying their Kakanin</p>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        {["/images/593673054_1300306312116547_6490578196211127701_n.jpg", "/images/605188717_1318326246981220_1061114583552849080_n.jpg", "/images/605233392_1317303160416862_4630087036549176694_n.jpg", "/images/605531388_1318326170314561_2523568997260473391_n.jpg", "/images/605729596_1318326473647864_5609203966918017777_n.jpg"].map((src, i) => (
+                            <div key={i} className="aspect-square relative rounded-2xl overflow-hidden hover:opacity-90 transition-opacity cursor-pointer shadow-sm">
+                                <Image src={src} alt="UGC" fill className="object-cover" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* 9. About Us / Founder */}
+            <section id="about" className="bg-[#f0ede5] py-24">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+                    <div className="mx-auto w-32 h-32 rounded-full overflow-hidden mb-6 border-4 border-white shadow-lg relative">
+                        <Image src="/images/605127122_1318326396981205_357002003061011921_n.jpg" alt="Founder" fill className="object-cover" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-slate-900 tracking-tight uppercase mb-4">About the Founder</h2>
+                    <p className="text-slate-600 text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
+                        "I started Ate Ai's Kitchen because I couldn't find the genuine, comforting taste of my grandmother's cooking anywhere in the city. What started as a small weekend hobby has blossomed into a passion project to share our rich Filipino food heritage with everyone. Every single product we sell is made with exactly the same care, love, and attention to detail as if I was serving it to my own family."
+                    </p>
+                    <p className="font-bold text-emerald-800 text-xl tracking-widest">- Ate Ai</p>
+                </div>
+            </section>
+
+            {/* 10. Frequently Asked Questions */}
+            <section id="faq" className="py-24 max-w-3xl mx-auto px-4 sm:px-6">
+                <div className="text-center mb-12">
+                    <h2 className="text-3xl font-bold text-slate-900 tracking-tight uppercase">Frequently Asked Questions</h2>
+                    <p className="text-slate-500 mt-2 text-lg">Got questions? We've got answers.</p>
+                </div>
+                <div className="space-y-4">
+                    {[
+                        { q: "How long does the food stay fresh?", a: "Our kakanin is best consumed within 2-3 days if refrigerated, and on the same day if left at room temperature." },
+                        { q: "Do you offer bulk orders for parties?", a: "Yes! We have party trays available. Please order at least 2 days in advance for large quantities." },
+                        { q: "Where do you deliver?", a: "Currently, we deliver across Metro Manila and select areas in Rizal and Cavite." },
+                        { q: "Are your ingredients really 100% organic?", a: "Absolutely. We strictly partner with certified organic farms for our rice, coconuts, and natural sweeteners." }
+                    ].map((faq, idx) => (
+                        <div key={idx} className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+                            <button
+                                onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                                className="w-full flex justify-between items-center p-6 text-left font-bold text-slate-800 hover:bg-slate-50 transition-colors"
+                            >
+                                {faq.q}
+                                <ChevronDown className={`w-5 h-5 text-emerald-600 transition-transform ${openFaq === idx ? "rotate-180" : ""}`} />
+                            </button>
+                            <AnimatePresence>
+                                {openFaq === idx && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: "auto", opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="px-6 pb-6 text-slate-600 leading-relaxed"
+                                    >
+                                        {faq.a}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* 11. Final CTA */}
+            <section className="bg-emerald-800 py-24 text-center">
+                <div className="max-w-2xl mx-auto px-4 sm:px-6">
+                    <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight uppercase mb-6 leading-tight">Ready to taste the tradition?</h2>
+                    <p className="text-emerald-50 text-xl md:text-2xl mb-10 font-medium">Sign up now and get 15% off your very first order of delicious, authentic Kakanin.</p>
+                    <motion.button
+                        whileTap={{ scale: 0.96 }}
+                        onClick={() => setShowLoginModal(true)}
+                        className="bg-white text-emerald-800 font-bold rounded-full px-10 py-5 hover:bg-emerald-50 transition-colors shadow-2xl shadow-emerald-950/40 text-lg mx-auto inline-flex items-center gap-3"
+                    >
+                        Create your account today <ArrowRight className="w-5 h-5" />
+                    </motion.button>
+                </div>
+            </section>
+
+            {/* 12. Footer */}
+            <footer className="bg-[#1e293b] py-16 text-slate-400">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 grid md:grid-cols-4 gap-8 mb-12">
+                    <div className="md:col-span-2">
+                        <div className="flex items-center gap-2 mb-6">
+                            <Leaf className="w-6 h-6 text-emerald-500" strokeWidth={1.5} />
+                            <span className="font-bold text-2xl tracking-tight text-white">
+                                Ate Ai's Kitchen
+                            </span>
+                        </div>
+                        <p className="max-w-sm mb-6">Bringing the authentic taste of Filipino heritage snacks directly to your modern table, fresh every single day.</p>
+                    </div>
+                    <div>
+                        <h4 className="text-white font-bold tracking-widest uppercase text-sm mb-6">Quick Links</h4>
+                        <ul className="space-y-3">
+                            <li><a href="#hero" className="hover:text-emerald-400 transition-colors">Home</a></li>
+                            <li><a href="#bestsellers" className="hover:text-emerald-400 transition-colors">Menu</a></li>
+                            <li><a href="#about" className="hover:text-emerald-400 transition-colors">About Us</a></li>
+                            <li><a href="#faq" className="hover:text-emerald-400 transition-colors">FAQs</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 className="text-white font-bold tracking-widest uppercase text-sm mb-6">Contact</h4>
+                        <ul className="space-y-3">
+                            <li className="hover:text-emerald-400 transition-colors cursor-pointer">hello@ateaiskitchen.com</li>
+                            <li className="hover:text-emerald-400 transition-colors cursor-pointer">+63 912 345 6789</li>
+                            <li><span className="text-slate-500">Metro Manila, Philippines</span></li>
+                        </ul>
+                    </div>
+                </div>
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 border-t border-slate-800 text-center text-sm">
+                    <p>&copy; {new Date().getFullYear()} Ate Ai's Kitchen. All rights reserved.</p>
+                </div>
             </footer>
 
             {/* Login Modal */}
@@ -221,7 +493,7 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                                     <input
                                         type="text"
                                         placeholder="Enter your details"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all font-medium"
                                     />
                                 </div>
                                 <div>
@@ -229,7 +501,7 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                                     <input
                                         type="password"
                                         placeholder="••••••••"
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all font-medium"
                                     />
                                 </div>
 
@@ -265,6 +537,18 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Product Details Modal */}
+            <ProductModal
+                product={selectedProduct}
+                isOpen={!!selectedProduct}
+                onClose={() => setSelectedProduct(null)}
+                onAction={() => {
+                    setSelectedProduct(null);
+                    setShowLoginModal(true);
+                }}
+                actionText="Login to Order"
+            />
         </motion.div>
     );
 }
