@@ -62,10 +62,10 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
             <AnimatePresence>
                 {showToast && (
                     <motion.div
-                        initial={{ opacity: 0, y: 50, x: "-50%" }}
+                        initial={{ opacity: 0, y: -50, x: "-50%" }}
                         animate={{ opacity: 1, y: 0, x: "-50%" }}
-                        exit={{ opacity: 0, y: 50, x: "-50%" }}
-                        className="fixed bottom-8 left-1/2 z-50 bg-slate-900 text-white px-6 py-3 rounded-full shadow-lg shadow-slate-900/20 font-medium flex items-center gap-2"
+                        exit={{ opacity: 0, y: -50, x: "-50%" }}
+                        className="fixed top-6 left-1/2 z-[60] bg-slate-900 text-white px-6 py-3 rounded-full shadow-lg shadow-slate-900/20 font-medium flex items-center gap-2"
                     >
                         <Leaf className="w-4 h-4 text-emerald-400" strokeWidth={2} />
                         Added to your cart!
