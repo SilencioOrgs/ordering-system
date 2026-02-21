@@ -42,7 +42,8 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showMapModal, setShowMapModal] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
-    const [activeTab, setActiveTab] = useState<"home" | "orders" | "profile" | "notifications" | "chat" | "custom-order">("home");
+    const [activeTab, setActiveTab] = useState<"home" | "orders" | "profile" | "notifications" | "chat" | "custom-order" | "settings">("home");
+    const [showPasswordFields, setShowPasswordFields] = useState(false);
     const [savedPlaces, setSavedPlaces] = useState<string>("Pin a location to save your place.");
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [showNotifications, setShowNotifications] = useState(false);
@@ -593,7 +594,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                 { icon: Star, label: "Rewards", action: () => { } },
                                 { icon: MapPin, label: "Saved Places", action: () => setShowMapModal(true) },
                                 { icon: CreditCard, label: "Payment Methods", action: () => { } },
-                                { icon: Settings, label: "Settings", action: () => { } },
+                                { icon: Settings, label: "Settings", action: () => setActiveTab("settings") },
                                 { icon: HelpCircle, label: "Help Centre", action: () => { } },
                             ].map((item, idx) => (
                                 <div key={idx} onClick={item.action} className="flex justify-between items-center p-4 py-4 md:py-5 border-b border-slate-100 last:border-0 active:bg-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
@@ -619,7 +620,200 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                 </section>
             )}
 
-            {/* Mobile Nav & Modals Spacer */}
+            {activeTab === "settings" && (
+                <section className="max-w-xl mx-auto bg-slate-50 min-h-[calc(100vh-80px)] pt-0 pb-24">
+
+                    {/* Sticky Header */}
+                    <div className="bg-white px-4 h-14 flex items-center gap-3 border-b border-slate-100 sticky top-20 z-10">
+                        <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => setActiveTab("profile")}
+                            className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors shrink-0"
+                        >
+                            <ArrowLeft className="w-4 h-4 text-slate-600" />
+                        </motion.button>
+                        <h2 className="text-base font-bold text-slate-900">Account Settings</h2>
+                    </div>
+
+                    <div className="p-4 space-y-4">
+
+                        {/* Personal Info Card */}
+                        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+
+                            {/* Section Label */}
+                            <div className="px-4 pt-4 pb-1">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Personal Info</p>
+                            </div>
+
+                            <div className="px-4 pb-4 space-y-3 pt-2">
+
+                                {/* Full Name */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 mb-1">Full Name</label>
+                                    <input
+                                        type="text"
+                                        defaultValue="Juan Dela Cruz"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 px-3 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all"
+                                        placeholder="Enter your full name"
+                                    />
+                                </div>
+
+                                {/* Display Name */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 mb-1">Username / Display Name</label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm select-none">@</span>
+                                        <input
+                                            type="text"
+                                            defaultValue="juandelacruz"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 pl-7 pr-3 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all"
+                                            placeholder="username"
+                                        />
+                                    </div>
+                                    <p className="text-[11px] text-slate-400 mt-1 ml-0.5">This is how others see you.</p>
+                                </div>
+
+                                {/* Phone */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 mb-1">Phone Number</label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm select-none">🇵🇭</span>
+                                        <input
+                                            type="tel"
+                                            defaultValue="+63 912 345 6789"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 pl-9 pr-3 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all"
+                                            placeholder="+63 9XX XXX XXXX"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Email */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 mb-1">Email Address</label>
+                                    <input
+                                        type="email"
+                                        defaultValue="juan@email.com"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 px-3 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all"
+                                        placeholder="you@email.com"
+                                    />
+                                </div>
+
+                            </div>
+
+                            {/* Divider */}
+                            <div className="h-px bg-slate-100 mx-4" />
+
+                            {/* Save Button inside card */}
+                            <div className="px-4 py-3">
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    className="w-full bg-emerald-700 text-white font-semibold rounded-lg py-3 hover:bg-emerald-800 transition-colors text-sm"
+                                >
+                                    Save Changes
+                                </motion.button>
+                            </div>
+                        </div>
+
+                        {/* Security Card */}
+                        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+
+                            <div className="px-4 pt-4 pb-1">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Security</p>
+                            </div>
+
+                            {/* Reset Password Row — tap to expand */}
+                            <div
+                                onClick={() => setShowPasswordFields(prev => !prev)}
+                                className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 active:bg-slate-100 transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">
+                                        <Settings className="w-4 h-4 text-slate-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-800">Reset Password</p>
+                                        <p className="text-xs text-slate-400">Change your account password</p>
+                                    </div>
+                                </div>
+                                <motion.div
+                                    animate={{ rotate: showPasswordFields ? 90 : 0 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <ChevronRight className="w-4 h-4 text-slate-300" />
+                                </motion.div>
+                            </div>
+
+                            <AnimatePresence>
+                                {showPasswordFields && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: "auto", opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        transition={{ duration: 0.22 }}
+                                        className="overflow-hidden"
+                                    >
+                                        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-slate-100">
+
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-500 mb-1">Current Password</label>
+                                                <input
+                                                    type="password"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 px-3 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all"
+                                                    placeholder="Enter current password"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-500 mb-1">New Password</label>
+                                                <input
+                                                    type="password"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 px-3 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all"
+                                                    placeholder="Enter new password"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-500 mb-1">Confirm New Password</label>
+                                                <input
+                                                    type="password"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 px-3 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all"
+                                                    placeholder="Re-enter new password"
+                                                />
+                                            </div>
+
+                                            <motion.button
+                                                whileTap={{ scale: 0.98 }}
+                                                className="w-full bg-slate-900 text-white font-semibold rounded-lg py-3 hover:bg-slate-700 transition-colors text-sm"
+                                            >
+                                                Update Password
+                                            </motion.button>
+
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                        </div>
+
+                        {/* Danger Zone */}
+                        <div className="bg-white border border-red-100 rounded-xl overflow-hidden">
+                            <div className="px-4 pt-4 pb-1">
+                                <p className="text-[10px] font-bold text-red-300 uppercase tracking-widest">Danger Zone</p>
+                            </div>
+                            <div className="px-4 py-3">
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={onLogout}
+                                    className="w-full border border-red-100 text-red-500 font-semibold rounded-lg py-3 hover:bg-red-50 active:bg-red-100 transition-colors text-sm"
+                                >
+                                    Log Out
+                                </motion.button>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+            )}
 
             {activeTab === "notifications" && (
                 <section className="block lg:hidden max-w-xl mx-auto bg-slate-50 min-h-screen pt-0 pb-28">
@@ -752,7 +946,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                         { id: "chat", label: "Support", icon: Headset },
                         { id: "profile", label: "Account", icon: User },
                     ].map((tab) => {
-                        const isActive = activeTab === tab.id;
+                        const isActive = activeTab === tab.id || (tab.id === "profile" && activeTab === "settings");
                         return (
                             <motion.button
                                 key={tab.id}
