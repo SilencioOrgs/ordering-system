@@ -83,7 +83,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="min-h-screen bg-[#FDFBF7] pb-28"
+            className="min-h-screen bg-[#FDFBF7] pb-20"
         >
             {/* Toast Notification */}
             <AnimatePresence>
@@ -743,55 +743,48 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                 </section>
             )}
 
-            {/* Mobile Bottom Navigation */}
-            <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-emerald-700 rounded-full px-3 py-2.5 flex items-center gap-1 shadow-2xl shadow-emerald-900/40 w-auto z-50 mb-[env(safe-area-inset-bottom)]">
-                {[
-                    { id: "home", label: "Home", icon: Store },
-                    { id: "orders", label: "Orders", icon: ReceiptText },
-                    { id: "chat", label: "Support", icon: Headset },
-                    { id: "profile", label: "Account", icon: User },
-                ].map((tab) => {
-                    const isActive = activeTab === tab.id;
-                    return (
-                        <motion.button
-                            key={tab.id}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => {
-                                setActiveTab(tab.id as any);
-                                if (tab.id === "orders") {
-                                    setOrderAnimKey(prev => prev + 1);
-                                }
-                            }}
-                            className={`flex items-center justify-center transition-all ${isActive
-                                    ? "bg-white rounded-full px-4 py-2.5 gap-2 shadow-sm"
-                                    : "w-11 h-11 rounded-full hover:bg-emerald-600/40 relative"
-                                }`}
-                        >
-                            <tab.icon
-                                className={`shrink-0 ${isActive ? "w-5 h-5 text-emerald-700" : "w-5 h-5 text-white/70"}`}
-                                strokeWidth={isActive ? 2.5 : 2}
-                            />
-                            {/* Example badge for notifications - if you choose to add bell back, use tab.id === 'notifications' */}
-                            {!isActive && tab.id === "notifications" && (
-                                <div className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-red-500 border border-emerald-700"></div>
-                            )}
-                            <AnimatePresence>
+            {/* Mobile + Tablet Bottom Navigation */}
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                <div className="flex items-center justify-around px-2 h-16">
+                    {[
+                        { id: "home", label: "Home", icon: Store },
+                        { id: "orders", label: "Orders", icon: ReceiptText },
+                        { id: "chat", label: "Support", icon: Headset },
+                        { id: "profile", label: "Account", icon: User },
+                    ].map((tab) => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <motion.button
+                                key={tab.id}
+                                whileTap={{ scale: 0.92 }}
+                                onClick={() => {
+                                    setActiveTab(tab.id as any);
+                                    if (tab.id === "orders") {
+                                        setOrderAnimKey(prev => prev + 1);
+                                    }
+                                }}
+                                className="relative flex flex-col items-center justify-center gap-1 flex-1 h-full"
+                            >
+                                <tab.icon
+                                    className={`w-5 h-5 transition-colors duration-200 ${isActive ? "text-emerald-700" : "text-slate-400"
+                                        }`}
+                                    strokeWidth={isActive ? 2.5 : 1.8}
+                                />
+                                <span className={`text-[11px] font-semibold transition-colors duration-200 ${isActive ? "text-emerald-700" : "text-slate-400"
+                                    }`}>
+                                    {tab.label}
+                                </span>
                                 {isActive && (
-                                    <motion.span
-                                        initial={{ width: 0, opacity: 0 }}
-                                        animate={{ width: "auto", opacity: 1 }}
-                                        exit={{ width: 0, opacity: 0 }}
-                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                        className="text-sm font-bold text-emerald-800 overflow-hidden whitespace-nowrap"
-                                    >
-                                        {tab.label}
-                                    </motion.span>
+                                    <motion.div
+                                        layoutId="nav-indicator"
+                                        className="absolute bottom-0 w-10 h-[2.5px] bg-emerald-700 rounded-full"
+                                    />
                                 )}
-                            </AnimatePresence>
-                        </motion.button>
-                    );
-                })}
-            </div>
+                            </motion.button>
+                        );
+                    })}
+                </div>
+            </nav>
 
             {/* Profile Modal */}
             <AnimatePresence>
