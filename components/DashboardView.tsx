@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ShoppingBag, Leaf, ShoppingCart, User, Star, X, MapPin, CreditCard, Settings, HelpCircle, ChevronRight, Store, ReceiptText, Truck } from "lucide-react";
+import { Search, ShoppingBag, Leaf, ShoppingCart, User, Star, X, MapPin, CreditCard, Settings, HelpCircle, ChevronRight, Store, ReceiptText, Truck, Bell, MessageCircle, Send } from "lucide-react";
 import Image from "next/image";
 import { products, categories, Product } from "@/lib/data";
 import LocationPicker from "./LocationPicker";
@@ -12,6 +12,18 @@ const promoSlides = [
     "/images/590554498_1300306938783151_7499415934952873_n.jpg",
     "/images/591286853_1300306458783199_3119486838764724933_n.jpg",
     "/images/591396000_1300306605449851_5261874470759623080_n.jpg"
+];
+
+const dummyNotifications = [
+    { id: 1, title: "Order Confirmed", message: "Your order #1234 is being prepared.", time: "5m ago", unread: true },
+    { id: 2, title: "Delivery Update", message: "Your rider is arriving in 5 mins.", time: "10m ago", unread: true },
+    { id: 3, title: "Promo Alert", message: "Get 20% off on your next purchase!", time: "1h ago", unread: false }
+];
+
+const dummyChatMessages = [
+    { id: 1, sender: "store", text: "Hi Juan! How can we help you today?", time: "10:00 AM" },
+    { id: 2, sender: "user", text: "I want to follow up on my order.", time: "10:05 AM" },
+    { id: 3, sender: "store", text: "Your order is on the way! It should arrive in 5 mins.", time: "10:06 AM" }
 ];
 
 interface DashboardViewProps {
@@ -28,9 +40,12 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showMapModal, setShowMapModal] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
-    const [activeTab, setActiveTab] = useState<"home" | "orders" | "profile">("home");
+    const [activeTab, setActiveTab] = useState<"home" | "orders" | "profile" | "notifications" | "chat">("home");
     const [savedPlaces, setSavedPlaces] = useState<string>("Pin a location to save your place.");
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [showChat, setShowChat] = useState(false);
+    const [chatMessage, setChatMessage] = useState("");
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -99,6 +114,143 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                     </div>
 
                     <div className="flex items-center gap-3 shrink-0">
+                        {/* Chat Button */}
+                        <div className="relative hidden md:block">
+                            <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => { setShowNotifications(false); setShowChat(!showChat); }}
+                                className="relative w-12 h-12 bg-white rounded-full border border-emerald-100 flex items-center justify-center hover:bg-emerald-50 transition-colors"
+                            >
+                                <MessageCircle className="w-6 h-6 text-slate-900" strokeWidth={1.5} />
+                            </motion.button>
+
+                            <AnimatePresence>
+                                {showChat && (
+                                    <>
+                                        <div className="fixed inset-0 z-40" onClick={() => setShowChat(false)} />
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            className="absolute right-0 top-16 w-80 sm:w-96 bg-white rounded-2xl shadow-xl z-50 border border-slate-100 overflow-hidden flex flex-col shadow-[0_20px_60px_rgba(0,0,0,0.16)] text-left"
+                                        >
+                                            <div className="p-4 bg-emerald-700 flex justify-between items-center text-white">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+                                                        <Leaf className="w-5 h-5 text-white" strokeWidth={1.5} />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold">Ate Ai's Support</h3>
+                                                        <div className="flex items-center gap-1.5 text-xs text-emerald-100">
+                                                            <span className="w-2 h-2 rounded-full bg-green-400"></span> Online
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => setShowChat(false)} className="text-white hover:text-emerald-200 transition-colors p-1 rounded-full hover:bg-emerald-800">
+                                                    <X className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                            <div className="h-80 overflow-y-auto p-4 bg-slate-50 flex flex-col gap-4">
+                                                {dummyChatMessages.map(msg => (
+                                                    <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+                                                        <div className={`max-w-[80%] rounded-2xl p-3 shadow-sm ${msg.sender === "user" ? "bg-emerald-600 text-white rounded-tr-sm" : "bg-white border border-slate-100 text-slate-800 rounded-tl-sm"}`}>
+                                                            <p className="text-sm">{msg.text}</p>
+                                                            <span className={`text-[10px] block mt-1 ${msg.sender === "user" ? "text-emerald-200 text-right" : "text-slate-400"}`}>{msg.time}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="p-4 border-t border-slate-100 bg-white flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Type a message..."
+                                                    value={chatMessage}
+                                                    onChange={(e) => setChatMessage(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter" && chatMessage.trim()) {
+                                                            setChatMessage("");
+                                                        }
+                                                    }}
+                                                    className="flex-1 bg-slate-100 border-transparent rounded-full px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:bg-white transition-all placeholder:text-slate-400"
+                                                />
+                                                <motion.button
+                                                    whileTap={{ scale: 0.9 }}
+                                                    onClick={() => { if (chatMessage.trim()) setChatMessage(""); }}
+                                                    className="w-10 h-10 bg-emerald-700 rounded-full flex items-center justify-center shrink-0 hover:bg-emerald-800 transition-colors shadow-sm shadow-emerald-700/20"
+                                                >
+                                                    <Send className="w-4 h-4 text-white ml-0.5" strokeWidth={2} />
+                                                </motion.button>
+                                            </div>
+                                        </motion.div>
+                                    </>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Notifications Button */}
+                        <div className="relative block">
+                            <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => {
+                                    if (window.innerWidth < 768) {
+                                        setActiveTab("notifications");
+                                    } else {
+                                        setShowChat(false);
+                                        setShowNotifications(!showNotifications);
+                                    }
+                                }}
+                                className="relative w-12 h-12 bg-white rounded-full border border-emerald-100 flex items-center justify-center hover:bg-emerald-50 transition-colors"
+                            >
+                                <Bell className="w-6 h-6 text-slate-900" strokeWidth={1.5} />
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-[10px] font-bold w-5 h-5 flex items-center justify-center border-2 border-white shadow-sm"
+                                >
+                                    2
+                                </motion.div>
+                            </motion.button>
+
+                            <AnimatePresence>
+                                {showNotifications && (
+                                    <>
+                                        <div className="fixed inset-0 z-40 hidden md:block" onClick={() => setShowNotifications(false)} />
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            className="hidden md:block absolute -right-16 sm:right-0 top-16 w-[calc(100vw-32px)] sm:w-80 bg-white rounded-2xl shadow-xl z-50 border border-slate-100 overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.16)] text-left"
+                                        >
+                                            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                                                <h3 className="font-bold text-slate-900">Notifications</h3>
+                                                <button onClick={() => setShowNotifications(false)} className="text-slate-400 hover:text-slate-600 transition-colors rounded-full hover:bg-slate-200 p-1">
+                                                    <X className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                            <div className="max-h-[350px] overflow-y-auto">
+                                                {dummyNotifications.map(notification => (
+                                                    <div key={notification.id} className={`p-4 border-b border-slate-50 hover:bg-green-50/50 transition-colors cursor-pointer ${notification.unread ? 'bg-emerald-50/30' : ''}`}>
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <h4 className="font-semibold text-sm text-slate-900 flex items-center gap-2">
+                                                                {notification.title}
+                                                                {notification.unread && <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm"></span>}
+                                                            </h4>
+                                                            <span className="text-[10px] text-slate-400 shrink-0">{notification.time}</span>
+                                                        </div>
+                                                        <p className="text-xs text-slate-500 font-medium leading-relaxed">{notification.message}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="p-3 bg-slate-50 text-center border-t border-slate-100 cursor-pointer hover:bg-slate-100 transition-colors">
+                                                <span className="text-sm font-bold text-emerald-700">View All Activities</span>
+                                            </div>
+                                        </motion.div>
+                                    </>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Cart Button */}
                         <motion.button
                             whileTap={{ scale: 0.9 }}
                             onClick={onOpenCart}
@@ -115,6 +267,8 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                 </motion.div>
                             )}
                         </motion.button>
+
+                        {/* Profile Button */}
                         <motion.button
                             whileTap={{ scale: 0.9 }}
                             onClick={() => setShowProfileModal(true)}
@@ -345,11 +499,84 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                 </section>
             )}
 
+            {/* Mobile Nav & Modals Spacer */}
+
+            {activeTab === "notifications" && (
+                <section className="block md:hidden max-w-xl mx-auto bg-slate-50 min-h-screen pt-0 pb-24">
+                    <div className="bg-white p-4 border-b border-slate-100 flex items-center gap-3 sticky top-20 z-10 shadow-sm">
+                        <Bell className="w-5 h-5 text-emerald-700" />
+                        <h2 className="text-lg font-bold text-slate-900">Notifications</h2>
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                        {dummyNotifications.map(notification => (
+                            <div key={notification.id} className={`p-4 bg-white transition-colors ${notification.unread ? 'bg-emerald-50/40' : ''}`}>
+                                <div className="flex justify-between items-start mb-1">
+                                    <h4 className="font-semibold text-[15px] text-slate-900 flex items-center gap-2">
+                                        {notification.title}
+                                        {notification.unread && <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shrink-0"></span>}
+                                    </h4>
+                                    <span className="text-xs text-slate-400 shrink-0">{notification.time}</span>
+                                </div>
+                                <p className="text-sm text-slate-500 font-medium leading-relaxed">{notification.message}</p>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {activeTab === "chat" && (
+                <section className="block md:hidden max-w-xl mx-auto bg-slate-50 h-[calc(100vh-80px-70px)] flex flex-col pt-0 pb-0">
+                    <div className="bg-emerald-700 p-4 border-b border-emerald-800 flex items-center gap-3 sticky top-20 z-10 shadow-sm text-white">
+                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+                            <Leaf className="w-5 h-5 text-white" strokeWidth={1.5} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold">Ate Ai's Support</h3>
+                            <div className="flex items-center gap-1.5 text-xs text-emerald-100">
+                                <span className="w-2 h-2 rounded-full bg-green-400"></span> Online
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+                        {dummyChatMessages.map(msg => (
+                            <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+                                <div className={`max-w-[85%] rounded-2xl p-3 shadow-sm ${msg.sender === "user" ? "bg-emerald-600 text-white rounded-tr-sm" : "bg-white border border-slate-100 text-slate-800 rounded-tl-sm"}`}>
+                                    <p className="text-sm">{msg.text}</p>
+                                    <span className={`text-[10px] block mt-1 ${msg.sender === "user" ? "text-emerald-200 text-right" : "text-slate-400"}`}>{msg.time}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="p-4 border-t border-slate-100 bg-white flex items-center gap-2 sticky bottom-[calc(env(safe-area-inset-bottom)+50px)] sm:bottom-0">
+                        <input
+                            type="text"
+                            placeholder="Type a message..."
+                            value={chatMessage}
+                            onChange={(e) => setChatMessage(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && chatMessage.trim()) {
+                                    setChatMessage("");
+                                }
+                            }}
+                            className="flex-1 bg-slate-100 border-transparent rounded-full px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:bg-white transition-all placeholder:text-slate-400"
+                        />
+                        <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => { if (chatMessage.trim()) setChatMessage(""); }}
+                            className="w-11 h-11 bg-emerald-700 rounded-full flex items-center justify-center shrink-0 hover:bg-emerald-800 transition-colors shadow-sm shadow-emerald-700/20"
+                        >
+                            <Send className="w-4 h-4 text-white ml-0.5" strokeWidth={2} />
+                        </motion.button>
+                    </div>
+                </section>
+            )}
+
             {/* Mobile Bottom Navigation */}
             <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-2 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
                 {[
                     { id: "home", label: "Home", icon: Store },
                     { id: "orders", label: "Orders", icon: ReceiptText },
+                    { id: "chat", label: "Message", icon: MessageCircle },
                     { id: "profile", label: "Account", icon: User },
                 ].map((tab) => {
                     const isActive = activeTab === tab.id;
@@ -357,7 +584,9 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                         <motion.button
                             key={tab.id}
                             whileTap={{ scale: 0.9 }}
-                            onClick={() => setActiveTab(tab.id as "home" | "orders" | "profile")}
+                            onClick={() => {
+                                setActiveTab(tab.id as any);
+                            }}
                             className={`flex flex-col items-center gap-1 min-w-16 p-2 ${isActive ? "text-emerald-700" : "text-slate-400"}`}
                         >
                             <tab.icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />

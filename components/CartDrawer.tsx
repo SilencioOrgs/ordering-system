@@ -45,7 +45,7 @@ export default function CartDrawer({
             return;
         }
 
-        // Standard COD flow
+        // Standard COD floW
         triggerSuccessState();
     };
 
