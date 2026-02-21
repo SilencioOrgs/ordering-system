@@ -83,7 +83,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="min-h-screen bg-[#FDFBF7] pb-24"
+            className="min-h-screen bg-[#FDFBF7] pb-28"
         >
             {/* Toast Notification */}
             <AnimatePresence>
@@ -103,7 +103,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
             {/* Dashboard Navbar */}
             <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-emerald-50">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center gap-6">
-                    <div className="flex items-center gap-2 shrink-0 hidden md:flex">
+                    <div className="flex items-center gap-2 shrink-0 hidden lg:flex">
                         <div className="w-10 h-10 bg-emerald-700 rounded-full flex items-center justify-center">
                             <Leaf className="w-6 h-6 text-white" strokeWidth={1.5} />
                         </div>
@@ -153,12 +153,12 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                             <AnimatePresence>
                                 {showNotifications && (
                                     <>
-                                        <div className="fixed inset-0 z-40 hidden md:block" onClick={() => setShowNotifications(false)} />
+                                        <div className="fixed inset-0 z-40 hidden lg:block" onClick={() => setShowNotifications(false)} />
                                         <motion.div
                                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            className="hidden md:block absolute -right-16 sm:right-0 top-16 w-[calc(100vw-32px)] sm:w-80 bg-white rounded-2xl shadow-xl z-50 border border-slate-100 overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.16)] text-left"
+                                            className="hidden lg:block absolute -right-16 sm:right-0 top-16 w-[calc(100vw-32px)] sm:w-80 bg-white rounded-2xl shadow-xl z-50 border border-slate-100 overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.16)] text-left"
                                         >
                                             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                                                 <h3 className="font-bold text-slate-900">Notifications</h3>
@@ -211,7 +211,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                         <motion.button
                             whileTap={{ scale: 0.9 }}
                             onClick={() => setShowProfileModal(true)}
-                            className="relative hidden md:flex w-12 h-12 bg-white rounded-full border border-emerald-100 items-center justify-center hover:bg-emerald-50 transition-colors"
+                            className="relative hidden lg:flex w-12 h-12 bg-white rounded-full border border-emerald-100 items-center justify-center hover:bg-emerald-50 transition-colors"
                         >
                             <User className="w-6 h-6 text-slate-900" strokeWidth={1.5} />
                         </motion.button>
@@ -577,7 +577,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
 
             {activeTab === "profile" && (
                 <section className="md:max-w-6xl mx-auto md:px-6 py-0 md:py-8 min-h-[calc(100vh-80px)]">
-                    <div className="max-w-xl mx-auto bg-slate-50 md:bg-transparent min-h-screen md:min-h-0 pt-0 pb-24 md:pb-0">
+                    <div className="max-w-xl mx-auto bg-slate-50 md:bg-transparent min-h-screen md:min-h-0 pt-0 pb-28 md:pb-0">
                         <div className="bg-white p-6 flex items-center gap-4 mb-2 shadow-sm rounded-none md:rounded-2xl border-b border-slate-100 md:border-none">
                             <div className="bg-slate-200 rounded-full w-16 h-16 flex items-center justify-center shrink-0">
                                 <User className="w-8 h-8 text-slate-500" />
@@ -622,7 +622,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
             {/* Mobile Nav & Modals Spacer */}
 
             {activeTab === "notifications" && (
-                <section className="block md:hidden max-w-xl mx-auto bg-slate-50 min-h-screen pt-0 pb-24">
+                <section className="block lg:hidden max-w-xl mx-auto bg-slate-50 min-h-screen pt-0 pb-28">
                     <div className="bg-white p-4 border-b border-slate-100 flex items-center gap-3 sticky top-20 z-10 shadow-sm">
                         <Bell className="w-5 h-5 text-emerald-700" />
                         <h2 className="text-lg font-bold text-slate-900">Notifications</h2>
@@ -645,7 +645,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
             )}
 
             {activeTab === "chat" && (
-                <section className="block md:hidden max-w-xl mx-auto bg-slate-50 h-[calc(100vh-80px-70px)] flex flex-col pt-0 pb-0">
+                <section className="block lg:hidden max-w-xl mx-auto bg-slate-50 h-[calc(100vh-80px-70px)] flex flex-col pt-0 pb-0">
                     <div className="bg-emerald-700 p-4 border-b border-emerald-800 flex items-center gap-3 sticky top-20 z-10 shadow-sm text-white">
                         <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0">
                             <Leaf className="w-5 h-5 text-white" strokeWidth={1.5} />
@@ -696,7 +696,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                     <div className="bg-emerald-800 p-4 border-b border-emerald-900 flex items-center gap-3 sticky top-20 z-10 shadow-sm text-white">
                         <button
                             onClick={() => setActiveTab("home")}
-                            className="hidden md:flex p-2 -ml-2 mr-1 hover:bg-emerald-700/50 rounded-full transition-colors"
+                            className="hidden lg:flex p-2 -ml-2 mr-1 hover:bg-emerald-700/50 rounded-full transition-colors"
                             aria-label="Go back to menu"
                         >
                             <ArrowLeft className="w-5 h-5 text-white" />
@@ -744,7 +744,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
             )}
 
             {/* Mobile Bottom Navigation */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-2 flex justify-between items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
+            <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-emerald-700 rounded-full px-3 py-2.5 flex items-center gap-1 shadow-2xl shadow-emerald-900/40 w-auto z-50 mb-[env(safe-area-inset-bottom)]">
                 {[
                     { id: "home", label: "Home", icon: Store },
                     { id: "orders", label: "Orders", icon: ReceiptText },
@@ -762,12 +762,34 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                     setOrderAnimKey(prev => prev + 1);
                                 }
                             }}
-                            className={`flex flex-col items-center gap-1 min-w-16 p-2 ${isActive ? "text-emerald-700" : "text-slate-400"}`}
+                            className={`flex items-center justify-center transition-all ${isActive
+                                    ? "bg-white rounded-full px-4 py-2.5 gap-2 shadow-sm"
+                                    : "w-11 h-11 rounded-full hover:bg-emerald-600/40 relative"
+                                }`}
                         >
-                            <tab.icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
-                            <span className="text-[10px] font-semibold">{tab.label}</span>
+                            <tab.icon
+                                className={`shrink-0 ${isActive ? "w-5 h-5 text-emerald-700" : "w-5 h-5 text-white/70"}`}
+                                strokeWidth={isActive ? 2.5 : 2}
+                            />
+                            {/* Example badge for notifications - if you choose to add bell back, use tab.id === 'notifications' */}
+                            {!isActive && tab.id === "notifications" && (
+                                <div className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-red-500 border border-emerald-700"></div>
+                            )}
+                            <AnimatePresence>
+                                {isActive && (
+                                    <motion.span
+                                        initial={{ width: 0, opacity: 0 }}
+                                        animate={{ width: "auto", opacity: 1 }}
+                                        exit={{ width: 0, opacity: 0 }}
+                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                        className="text-sm font-bold text-emerald-800 overflow-hidden whitespace-nowrap"
+                                    >
+                                        {tab.label}
+                                    </motion.span>
+                                )}
+                            </AnimatePresence>
                         </motion.button>
-                    )
+                    );
                 })}
             </div>
 
