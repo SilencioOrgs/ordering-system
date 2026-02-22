@@ -224,8 +224,8 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                 </div>
             </header>
 
-            <div className="lg:flex lg:gap-0">
-                <aside className="hidden lg:flex lg:flex-col w-56 shrink-0 sticky top-20 h-[calc(100vh-80px)] overflow-y-auto border-r border-slate-100 bg-white">
+            <div className="lg:flex lg:gap-0 lg:h-[calc(100vh-80px)] lg:overflow-hidden">
+                <aside className="hidden lg:flex lg:flex-col w-56 shrink-0 h-full overflow-y-hidden border-r border-slate-100 bg-white">
                     <div className="p-5 border-b border-slate-100">
                         <div className="bg-slate-200 rounded-full w-12 h-12 flex items-center justify-center shrink-0 mb-3">
                             <User className="w-6 h-6 text-slate-500" />
@@ -279,7 +279,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                     </div>
                 </aside>
 
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-hidden lg:h-full lg:overflow-y-auto">
             {activeTab === "home" && (
                 <>
                     {/* Promo Carousel */}
