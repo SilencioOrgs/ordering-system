@@ -32,11 +32,11 @@ export default function ProductModal({ product, isOpen, onClose, onAction, actio
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: "100%", opacity: 0 }}
                         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="relative w-full max-w-2xl bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
+                        className="relative w-full max-w-2xl bg-white rounded-t-xl sm:rounded-xl overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
                     >
                         <button
                             onClick={onClose}
-                            className="absolute top-4 right-4 z-20 p-2 bg-white/50 backdrop-blur-md text-slate-900 hover:bg-white rounded-full transition-colors shadow-sm"
+                            className="absolute top-4 right-4 z-20 p-1.5 bg-white/50 backdrop-blur-md text-slate-900 hover:bg-slate-100 rounded-md transition-colors shadow-sm"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -93,7 +93,7 @@ export default function ProductModal({ product, isOpen, onClose, onAction, actio
                                     </div>
                                 )}
 
-                                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 mt-6 flex items-start gap-3">
+                                <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 mt-6 flex items-start gap-3">
                                     <div className="bg-emerald-100 p-2 rounded-xl text-emerald-700 shrink-0">
                                         <Truck className="w-5 h-5" />
                                     </div>
@@ -106,11 +106,11 @@ export default function ProductModal({ product, isOpen, onClose, onAction, actio
                         </div>
 
                         {/* Sticky Bottom Action Bar */}
-                        <div className="absolute bottom-0 inset-x-0 p-4 sm:p-6 bg-white border-t border-slate-100 sm:relative sm:border-t-0 sm:pt-0 pb-6 rounded-b-3xl">
+                        <div className="absolute bottom-0 inset-x-0 p-4 sm:p-6 bg-white border-t border-slate-100 sm:relative sm:border-t-0 sm:pt-0 pb-6 rounded-b-xl">
                             <motion.button
                                 whileTap={{ scale: 0.98 }}
                                 onClick={onAction}
-                                className="w-full bg-emerald-700 text-white font-bold rounded-2xl py-4 shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors flex items-center justify-center gap-3 text-lg"
+                                className="w-full bg-emerald-700 text-white font-bold rounded-lg py-4 shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors flex items-center justify-center gap-3 text-lg"
                             >
                                 <ShoppingBag className="w-5 h-5" />
                                 {actionText}

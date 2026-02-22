@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { SVGProps, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Minus, MapPin, CreditCard, Banknote, Calendar, CheckCircle2, Truck, Store, Map, Upload, QrCode } from "lucide-react";
+import { X, Plus, Minus, MapPin, CreditCard, Banknote, Calendar, CheckCircle2, Truck, Store, Upload, QrCode } from "lucide-react";
 import Image from "next/image";
 import { Product } from "@/lib/data";
 import LocationPicker from "./LocationPicker";
@@ -89,7 +89,7 @@ export default function CartDrawer({
                             <motion.button
                                 whileTap={{ scale: 0.9 }}
                                 onClick={onClose}
-                                className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-colors text-slate-500"
+                                className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
                             >
                                 <X className="w-5 h-5" strokeWidth={1.5} />
                             </motion.button>
@@ -100,7 +100,7 @@ export default function CartDrawer({
                             {/* Cart Items */}
                             {cartItems.length === 0 ? (
                                 <div className="text-center py-12">
-                                    <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <div className="w-20 h-20 bg-emerald-50 rounded-lg flex items-center justify-center mx-auto mb-4">
                                         <ShoppingBagIcon className="w-10 h-10 text-emerald-200" strokeWidth={1.5} />
                                     </div>
                                     <h3 className="text-lg font-bold text-slate-900">Your cart is empty</h3>
@@ -109,7 +109,7 @@ export default function CartDrawer({
                             ) : (
                                 <div className="space-y-4">
                                     {cartItems.map((item) => (
-                                        <div key={item.id} className="flex gap-4 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
+                                        <div key={item.id} className="flex gap-4 bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
                                             <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-50">
                                                 <Image src={item.image} alt={item.name} fill className="object-cover" />
                                             </div>
@@ -122,14 +122,14 @@ export default function CartDrawer({
                                                 <div className="flex items-center gap-3">
                                                     <button
                                                         onClick={() => onUpdateQuantity(item.id, -1)}
-                                                        className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 text-slate-600 transition-colors"
+                                                        className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center hover:bg-slate-200 text-slate-600 transition-colors"
                                                     >
                                                         <Minus className="w-3 h-3" strokeWidth={2} />
                                                     </button>
                                                     <span className="font-semibold text-sm w-4 text-center">{item.quantity}</span>
                                                     <button
                                                         onClick={() => onUpdateQuantity(item.id, 1)}
-                                                        className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 text-slate-600 transition-colors"
+                                                        className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center hover:bg-slate-200 text-slate-600 transition-colors"
                                                     >
                                                         <Plus className="w-3 h-3" strokeWidth={2} />
                                                     </button>
@@ -142,7 +142,7 @@ export default function CartDrawer({
 
                             {/* Checkout Form */}
                             {cartItems.length > 0 && (
-                                <div className="space-y-6 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                                <div className="space-y-6 bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
                                     <h3 className="text-lg font-bold tracking-tight text-slate-900">Order Details</h3>
 
                                     <div className="flex bg-slate-100 p-1 rounded-xl mb-2">
@@ -211,7 +211,7 @@ export default function CartDrawer({
                                                         : "border-slate-200 hover:border-slate-300"
                                                         }`}
                                                 >
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedPayment === "cod" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedPayment === "cod" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                                                         <Banknote className="w-4 h-4" strokeWidth={1.5} />
                                                     </div>
                                                     <span className={`font-medium text-sm ${selectedPayment === "cod" ? "text-emerald-900" : "text-slate-700"}`}>Cash</span>
@@ -225,7 +225,7 @@ export default function CartDrawer({
                                                         : "border-slate-200 hover:border-slate-300"
                                                         }`}
                                                 >
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedPayment === "online" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedPayment === "online" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>
                                                         <CreditCard className="w-4 h-4" strokeWidth={1.5} />
                                                     </div>
                                                     <span className={`font-medium text-sm ${selectedPayment === "online" ? "text-emerald-900" : "text-slate-700"}`}>GCash / Maya</span>
@@ -259,7 +259,7 @@ export default function CartDrawer({
                                 <motion.button
                                     whileTap={{ scale: 0.96 }}
                                     onClick={handlePlaceOrder}
-                                    className="w-full bg-emerald-700 text-white font-semibold rounded-full py-4 shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2 text-lg"
+                                    className="w-full bg-emerald-700 text-white font-semibold rounded-lg py-4 shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2 text-lg"
                                 >
                                     Place Order - ₱{totalPayment}
                                 </motion.button>
@@ -284,12 +284,12 @@ export default function CartDrawer({
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl z-10 flex flex-col items-center"
+                            className="relative w-full max-w-sm bg-white rounded-xl p-6 shadow-2xl z-10 flex flex-col items-center"
                         >
                             <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-4 w-full text-left">Pin Location</h3>
-                            <div className="relative w-full h-80 rounded-2xl overflow-hidden bg-emerald-50 mb-6 border border-slate-100 flex-shrink-0">
+                            <div className="relative w-full h-80 rounded-lg overflow-hidden bg-emerald-50 mb-6 border border-slate-100 flex-shrink-0">
                                 <LocationPicker
-                                    onLocationSelect={(addr, lat, lng) => {
+                                    onLocationSelect={(addr) => {
                                         setAddress(addr);
                                         setShowMapModal(false);
                                     }}
@@ -322,12 +322,12 @@ export default function CartDrawer({
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl z-10 flex flex-col items-center"
+                            className="relative w-full max-w-sm bg-white rounded-xl p-6 shadow-2xl z-10 flex flex-col items-center"
                         >
                             <div className="absolute top-4 right-4">
                                 <button
                                     onClick={() => setShowPaymentModal(false)}
-                                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                                    className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
@@ -335,13 +335,13 @@ export default function CartDrawer({
 
                             {paymentStep === "qr" ? (
                                 <>
-                                    <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-4 mt-2">
+                                    <div className="w-16 h-16 bg-emerald-50 rounded-lg flex items-center justify-center mb-4 mt-2">
                                         <QrCode className="w-8 h-8 text-emerald-600" />
                                     </div>
                                     <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-1 text-center">Scan to Pay</h3>
                                     <p className="text-slate-500 text-sm mb-6 text-center">Send exactly <strong className="text-emerald-700 font-bold">₱{totalPayment}</strong> to proceed.</p>
 
-                                    <div className="w-48 h-48 bg-slate-100 rounded-2xl mb-6 flex items-center justify-center border-2 border-dashed border-slate-300 relative overflow-hidden">
+                                    <div className="w-48 h-48 bg-slate-100 rounded-lg mb-6 flex items-center justify-center border-2 border-dashed border-slate-300 relative overflow-hidden">
                                         {/* Placeholder QR Image - swap with real one later */}
                                         <Image src="/placeholder.png" alt="QR Code" fill className="object-cover opacity-30 mix-blend-multiply" />
                                         <QrCode className="w-12 h-12 text-slate-400 absolute" />
@@ -368,13 +368,13 @@ export default function CartDrawer({
                                 </>
                             ) : (
                                 <>
-                                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 mt-2">
+                                    <div className="w-16 h-16 bg-blue-50 rounded-lg flex items-center justify-center mb-4 mt-2">
                                         <Upload className="w-8 h-8 text-blue-600" />
                                     </div>
                                     <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-1 text-center">Upload Receipt</h3>
                                     <p className="text-slate-500 text-sm mb-6 text-center">Please attach a screenshot of your successful transaction.</p>
 
-                                    <label className="w-full h-32 bg-slate-50 border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/50 transition-colors rounded-2xl mb-6 flex flex-col items-center justify-center cursor-pointer group">
+                                    <label className="w-full h-32 bg-slate-50 border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/50 transition-colors rounded-lg mb-6 flex flex-col items-center justify-center cursor-pointer group">
                                         <Upload className="w-6 h-6 text-slate-400 group-hover:text-emerald-500 mb-2 transition-colors" strokeWidth={2} />
                                         <span className="text-sm font-medium text-slate-600 group-hover:text-emerald-700 transition-colors">Tap to select photo</span>
                                         <input type="file" className="hidden" accept="image/*" />
@@ -407,9 +407,9 @@ export default function CartDrawer({
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white p-10 rounded-[2.5rem] shadow-2xl flex flex-col items-center max-w-sm mx-4 text-center"
+                            className="bg-white p-10 rounded-xl shadow-2xl flex flex-col items-center max-w-sm mx-4 text-center"
                         >
-                            <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+                            <div className="w-24 h-24 bg-emerald-100 rounded-lg flex items-center justify-center mb-6">
                                 <CheckCircle2 className="w-12 h-12 text-emerald-600" strokeWidth={2} />
                             </div>
                             <h2 className="text-3xl font-bold text-slate-900 tracking-tight mb-3">Order Placed!</h2>
@@ -425,7 +425,7 @@ export default function CartDrawer({
 }
 
 // Simple fallback icon
-function ShoppingBagIcon(props: any) {
+function ShoppingBagIcon(props: SVGProps<SVGSVGElement>) {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ShoppingBag, Leaf, ShoppingCart, User, Star, X, MapPin, CreditCard, Settings, HelpCircle, ChevronRight, Store, ReceiptText, Truck, Bell, MessageCircle, Send, ArrowLeft, Headset } from "lucide-react";
+import { Search, ShoppingBag, Leaf, ShoppingCart, User, Star, X, MapPin, CreditCard, Settings, HelpCircle, ChevronRight, Store, ReceiptText, Bell, MessageCircle, Send, ArrowLeft, Headset, Banknote, Smartphone } from "lucide-react";
 import Image from "next/image";
 import { products, categories, Product } from "@/lib/data";
 import LocationPicker from "./LocationPicker";
@@ -35,6 +35,8 @@ interface DashboardViewProps {
     onRedirectHandled?: () => void;
 }
 
+type DashboardTab = "home" | "orders" | "profile" | "notifications" | "chat" | "custom-order" | "settings";
+
 export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLogout, shouldRedirectToOrders, onRedirectHandled }: DashboardViewProps) {
     const [activeCategory, setActiveCategory] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
@@ -42,22 +44,24 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showMapModal, setShowMapModal] = useState(false);
     const [currentSlide, setCurrentSlide] = useState(0);
-    const [activeTab, setActiveTab] = useState<"home" | "orders" | "profile" | "notifications" | "chat" | "custom-order" | "settings">("home");
+    const [activeTab, setActiveTab] = useState<DashboardTab>("home");
     const [settingsPage, setSettingsPage] = useState<"main" | "account-security" | "addresses" | "payment-methods">("main");
     const [showPasswordFields, setShowPasswordFields] = useState(false);
     const [savedPlaces, setSavedPlaces] = useState<string>("Pin a location to save your place.");
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [showNotifications, setShowNotifications] = useState(false);
-    const [showChat, setShowChat] = useState(false);
     const [chatMessage, setChatMessage] = useState("");
     const [orderAnimKey, setOrderAnimKey] = useState(0);
     const [expandedOrder, setExpandedOrder] = useState<string | null>("ORD-20241024");
 
     useEffect(() => {
         if (shouldRedirectToOrders) {
-            setActiveTab("orders");
-            setOrderAnimKey(prev => prev + 1);
+            const timeoutId = setTimeout(() => {
+                setActiveTab("orders");
+                setOrderAnimKey(prev => prev + 1);
+            }, 0);
             if (onRedirectHandled) onRedirectHandled();
+            return () => clearTimeout(timeoutId);
         }
     }, [shouldRedirectToOrders, onRedirectHandled]);
 
@@ -94,7 +98,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                         initial={{ opacity: 0, y: -50, x: "-50%" }}
                         animate={{ opacity: 1, y: 0, x: "-50%" }}
                         exit={{ opacity: 0, y: -50, x: "-50%" }}
-                        className="fixed top-6 left-1/2 z-[60] bg-slate-900 text-white px-6 py-3 rounded-full shadow-lg shadow-slate-900/20 font-medium flex items-center gap-2"
+                        className="fixed top-6 left-1/2 z-[60] bg-slate-900 text-white px-6 py-3 rounded-lg shadow-lg shadow-slate-900/20 font-medium flex items-center gap-2"
                     >
                         <Leaf className="w-4 h-4 text-emerald-400" strokeWidth={2} />
                         Added to your cart!
@@ -106,7 +110,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
             <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-emerald-50">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center gap-6">
                     <div className="flex items-center gap-2 shrink-0 hidden lg:flex">
-                        <div className="w-10 h-10 bg-emerald-700 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-emerald-700 rounded-lg flex items-center justify-center">
                             <Leaf className="w-6 h-6 text-white" strokeWidth={1.5} />
                         </div>
                         <span className="font-bold text-xl tracking-tight text-slate-900">
@@ -123,7 +127,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                             placeholder="Search for delicacy..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-gray-100 rounded-full w-full py-3 pl-12 pr-6 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:bg-white transition-all placeholder:text-slate-500 font-medium"
+                            className="bg-gray-100 rounded-lg w-full py-3 pl-12 pr-6 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:bg-white transition-all placeholder:text-slate-500 font-medium"
                         />
                     </div>
 
@@ -136,11 +140,10 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                     if (window.innerWidth < 768) {
                                         setActiveTab("notifications");
                                     } else {
-                                        setShowChat(false);
                                         setShowNotifications(!showNotifications);
                                     }
                                 }}
-                                className="relative w-12 h-12 bg-white rounded-full border border-emerald-100 flex items-center justify-center hover:bg-emerald-50 transition-colors"
+                                className="relative w-12 h-12 bg-white rounded-lg border border-emerald-100 flex items-center justify-center hover:bg-emerald-50 transition-colors"
                             >
                                 <Bell className="w-6 h-6 text-slate-900" strokeWidth={1.5} />
                                 <motion.div
@@ -160,11 +163,11 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            className="hidden lg:block absolute -right-16 sm:right-0 top-16 w-[calc(100vw-32px)] sm:w-80 bg-white rounded-2xl shadow-xl z-50 border border-slate-100 overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.16)] text-left"
+                                            className="hidden lg:block absolute -right-16 sm:right-0 top-16 w-[calc(100vw-32px)] sm:w-80 bg-white rounded-lg shadow-xl z-50 border border-slate-100 overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.16)] text-left"
                                         >
                                             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                                                 <h3 className="font-bold text-slate-900">Notifications</h3>
-                                                <button onClick={() => setShowNotifications(false)} className="text-slate-400 hover:text-slate-600 transition-colors rounded-full hover:bg-slate-200 p-1">
+                                                <button onClick={() => setShowNotifications(false)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors">
                                                     <X className="w-5 h-5" />
                                                 </button>
                                             </div>
@@ -195,7 +198,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                         <motion.button
                             whileTap={{ scale: 0.9 }}
                             onClick={onOpenCart}
-                            className="relative w-12 h-12 bg-white rounded-full border border-emerald-100 flex items-center justify-center hover:bg-emerald-50 transition-colors"
+                            className="relative w-12 h-12 bg-white rounded-lg border border-emerald-100 flex items-center justify-center hover:bg-emerald-50 transition-colors"
                         >
                             <ShoppingBag className="w-6 h-6 text-slate-900" strokeWidth={1.5} />
                             {cartCount > 0 && (
@@ -213,7 +216,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                         <motion.button
                             whileTap={{ scale: 0.9 }}
                             onClick={() => setShowProfileModal(true)}
-                            className="relative hidden lg:flex w-12 h-12 bg-white rounded-full border border-emerald-100 items-center justify-center hover:bg-emerald-50 transition-colors"
+                            className="relative hidden lg:flex w-12 h-12 bg-white rounded-lg border border-emerald-100 items-center justify-center hover:bg-emerald-50 transition-colors"
                         >
                             <User className="w-6 h-6 text-slate-900" strokeWidth={1.5} />
                         </motion.button>
@@ -221,11 +224,67 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                 </div>
             </header>
 
+            <div className="lg:flex lg:gap-0">
+                <aside className="hidden lg:flex lg:flex-col w-56 shrink-0 sticky top-20 h-[calc(100vh-80px)] overflow-y-auto border-r border-slate-100 bg-white">
+                    <div className="p-5 border-b border-slate-100">
+                        <div className="bg-slate-200 rounded-full w-12 h-12 flex items-center justify-center shrink-0 mb-3">
+                            <User className="w-6 h-6 text-slate-500" />
+                        </div>
+                        <h3 className="text-sm font-bold text-slate-900">Juan Dela Cruz</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">+63 912 345 6789</p>
+                    </div>
+
+                    <div className="py-2">
+                        {[
+                            { id: "home", label: "Home", icon: Store },
+                            { id: "orders", label: "Orders", icon: ReceiptText },
+                            { id: "notifications", label: "Notifications", icon: Bell, badge: "2" },
+                            { id: "chat", label: "Support / Chat", icon: Headset },
+                            { id: "profile", label: "Account", icon: User },
+                        ].map((item) => {
+                            const isActive = activeTab === item.id || (item.id === "profile" && activeTab === "settings");
+                            return (
+                                <button
+                                    key={item.id}
+                                    onClick={() => {
+                                        setActiveTab(item.id as typeof activeTab);
+                                        if (item.id === "orders") setOrderAnimKey(prev => prev + 1);
+                                    }}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors text-sm font-medium border-l-2 ${isActive
+                                        ? "bg-emerald-50 text-emerald-700 font-semibold border-emerald-700"
+                                        : "text-slate-600 hover:bg-slate-50 border-transparent"
+                                        }`}
+                                >
+                                    <div className="relative">
+                                        <item.icon className="w-4 h-4" />
+                                        {item.badge && (
+                                            <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-[9px] font-bold w-4 h-4 flex items-center justify-center">
+                                                {item.badge}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span>{item.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="mt-auto p-4 border-t border-slate-100">
+                        <button
+                            onClick={onLogout}
+                            className="w-full text-left text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors px-3 py-2 rounded-md"
+                        >
+                            Log Out
+                        </button>
+                    </div>
+                </aside>
+
+                <div className="flex-1 overflow-hidden">
             {activeTab === "home" && (
                 <>
                     {/* Promo Carousel */}
                     <section className="max-w-6xl mx-auto px-0 sm:px-6 pt-8 pb-6">
-                        <div className="relative w-full h-32 md:h-[120px] md:max-w-[800px] mx-auto sm:rounded-2xl overflow-hidden bg-slate-100 shadow-sm border-y sm:border border-slate-200">
+                        <div className="relative w-full h-32 md:h-[120px] md:max-w-[800px] mx-auto sm:rounded-lg overflow-hidden bg-slate-100 shadow-sm border-y sm:border border-slate-200">
                             <AnimatePresence initial={false}>
                                 <motion.div
                                     key={currentSlide}
@@ -249,7 +308,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                     <button
                                         key={idx}
                                         onClick={() => setCurrentSlide(idx)}
-                                        className={`h-1.5 rounded-full transition-all ${currentSlide === idx ? "w-6 bg-white" : "w-1.5 bg-white/50"
+                                        className={`h-1.5 rounded-lg transition-all ${currentSlide === idx ? "w-6 bg-white" : "w-1.5 bg-white/50"
                                             }`}
                                     />
                                 ))}
@@ -265,7 +324,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                     whileTap={{ scale: 0.96 }}
                                     key={category}
                                     onClick={() => setActiveCategory(category)}
-                                    className={`whitespace-nowrap rounded-full px-4 py-2 font-semibold text-sm transition-colors border ${activeCategory === category
+                                    className={`whitespace-nowrap rounded-lg px-4 py-2 font-semibold text-sm transition-colors border ${activeCategory === category
                                         ? "bg-emerald-700 text-white border-emerald-700"
                                         : "bg-white text-slate-600 border-slate-200 hover:border-emerald-200 hover:bg-emerald-50"
                                         }`}
@@ -277,7 +336,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                             <motion.button
                                 whileTap={{ scale: 0.96 }}
                                 onClick={() => setActiveTab("custom-order")}
-                                className="whitespace-nowrap rounded-full px-4 py-2 font-semibold text-sm transition-colors border border-emerald-700 bg-emerald-50 text-emerald-800 flex items-center gap-1.5 hover:bg-emerald-100 shrink-0"
+                                className="whitespace-nowrap rounded-lg px-4 py-2 font-semibold text-sm transition-colors border border-emerald-700 bg-emerald-50 text-emerald-800 flex items-center gap-1.5 hover:bg-emerald-100 shrink-0"
                             >
                                 <MessageCircle className="w-4 h-4" />
                                 Custom Order
@@ -300,9 +359,9 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: idx * 0.05, duration: 0.3 }}
-                                        className="bg-white rounded-3xl p-3 sm:p-4 shadow-[0_12px_40px_rgba(0,0,0,0.12)] flex flex-row sm:flex-col gap-3 sm:gap-0 group transition-all border border-slate-100/50 hover:shadow-[0_20px_60px_rgba(0,0,0,0.16)] sm:hover:-translate-y-1"
+                                        className="bg-white rounded-xl p-3 sm:p-4 shadow-[0_12px_40px_rgba(0,0,0,0.12)] flex flex-row sm:flex-col gap-3 sm:gap-0 group transition-all border border-slate-100/50 hover:shadow-[0_20px_60px_rgba(0,0,0,0.16)] sm:hover:-translate-y-1"
                                     >
-                                        <div className="w-[110px] h-[110px] sm:w-full sm:h-auto sm:aspect-[4/3] relative rounded-2xl overflow-hidden bg-slate-100 shrink-0">
+                                        <div className="w-[110px] h-[110px] sm:w-full sm:h-auto sm:aspect-[4/3] relative rounded-lg overflow-hidden bg-slate-100 shrink-0">
                                             <Image
                                                 src={product.image}
                                                 alt={product.name}
@@ -368,14 +427,14 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                                 <motion.button
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={() => setSelectedProduct(product)}
-                                                    className="hidden sm:block flex-1 bg-white text-emerald-700 border-2 border-emerald-700 font-bold py-3 rounded-[14px] hover:bg-emerald-50 transition-colors text-sm shadow-sm"
+                                                    className="hidden sm:block flex-1 bg-white text-emerald-700 border-2 border-emerald-700 font-bold py-3 rounded-md hover:bg-emerald-50 transition-colors text-sm shadow-sm"
                                                 >
                                                     More details
                                                 </motion.button>
                                                 <motion.button
                                                     whileTap={{ scale: 0.95 }}
                                                     onClick={() => handleAddToCart(product)}
-                                                    className="hidden sm:flex bg-emerald-700 text-white p-3 rounded-[14px] hover:bg-emerald-800 transition-colors items-center justify-center shrink-0 w-12 h-12 shadow-md shadow-emerald-700/20"
+                                                    className="hidden sm:flex bg-emerald-700 text-white p-3 rounded-md hover:bg-emerald-800 transition-colors items-center justify-center shrink-0 w-12 h-12 shadow-md shadow-emerald-700/20"
                                                 >
                                                     <ShoppingCart className="w-5 h-5" strokeWidth={2.5} />
                                                 </motion.button>
@@ -386,7 +445,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                             </div>
                         ) : (
                             <div className="py-20 text-center">
-                                <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <div className="w-20 h-20 bg-emerald-50 rounded-lg flex items-center justify-center mx-auto mb-4">
                                     <Search className="w-10 h-10 text-emerald-200" strokeWidth={1.5} />
                                 </div>
                                 <h3 className="text-xl font-bold text-slate-900">No delights found</h3>
@@ -434,14 +493,14 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.1 + orderIdx * 0.1 }}
                                     onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
-                                    className={`bg-white p-6 shadow-sm border border-slate-100 cursor-pointer transition-all hover:shadow-md ${isExpanded ? 'rounded-t-3xl border-b-0' : 'rounded-3xl'}`}
+                                    className={`bg-white p-6 shadow-sm border border-slate-100 cursor-pointer transition-all hover:shadow-md ${isExpanded ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}
                                 >
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
                                             <h3 className="text-xl font-black text-slate-900 tracking-tight">Order #{order.id}</h3>
                                             <p className="text-slate-500 text-sm mt-1 font-medium">{order.method} • ₱{order.price}</p>
                                         </div>
-                                        <div className={`font-bold px-3 py-1.5 rounded-full text-xs border uppercase tracking-wider flex items-center gap-2 ${order.status === 'Delivered' ? 'bg-slate-50 text-slate-600 border-slate-200' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
+                                        <div className={`font-bold px-3 py-1.5 rounded-lg text-xs border uppercase tracking-wider flex items-center gap-2 ${order.status === 'Delivered' ? 'bg-slate-50 text-slate-600 border-slate-200' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
                                             {order.status === 'Preparing' && (
                                                 <motion.div
                                                     animate={{ scale: [1, 1.3, 1] }}
@@ -459,7 +518,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                         </div>
                                         <motion.div
                                             animate={{ rotate: isExpanded ? 180 : 0 }}
-                                            className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0"
+                                            className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0"
                                         >
                                             <ChevronRight className="w-5 h-5 text-slate-400" />
                                         </motion.div>
@@ -476,7 +535,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                             transition={{ duration: 0.3 }}
                                             className="overflow-hidden"
                                         >
-                                            <div className="bg-white rounded-b-3xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-t-0 border-slate-100">
+                                            <div className="bg-white rounded-b-xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-t-0 border-slate-100">
                                                 <h4 className="text-[15px] font-black text-slate-900 mb-6 w-full text-left tracking-tight">Tracking Details</h4>
                                                 <div className="relative">
                                                     {[
@@ -580,7 +639,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
             {activeTab === "profile" && (
                 <section className="md:max-w-6xl mx-auto md:px-6 py-0 md:py-8 min-h-[calc(100vh-80px)]">
                     <div className="max-w-xl mx-auto bg-slate-50 md:bg-transparent min-h-screen md:min-h-0 pt-0 pb-28 md:pb-0">
-                        <div className="bg-white p-6 flex items-center gap-4 mb-2 shadow-sm rounded-none md:rounded-2xl border-b border-slate-100 md:border-none">
+                        <div className="bg-white p-6 flex items-center gap-4 mb-2 shadow-sm rounded-none md:rounded-lg border-b border-slate-100 md:border-none">
                             <div className="bg-slate-200 rounded-full w-16 h-16 flex items-center justify-center shrink-0">
                                 <User className="w-8 h-8 text-slate-500" />
                             </div>
@@ -590,21 +649,16 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                             </div>
                         </div>
 
-                        <div className="bg-white shadow-sm w-full rounded-none md:rounded-2xl overflow-hidden mb-2">
+                        <div className="bg-white shadow-sm w-full rounded-none md:rounded-lg overflow-hidden mb-2">
                             {[
                                 { icon: Star, label: "Rewards", action: () => { } },
-                                { icon: MapPin, label: "Saved Places", action: () => setShowMapModal(true) },
-                                { icon: CreditCard, label: "Payment Methods", action: () => { } },
                                 { icon: Settings, label: "Settings", action: () => setActiveTab("settings") },
                                 { icon: HelpCircle, label: "Help Centre", action: () => { } },
                             ].map((item, idx) => (
                                 <div key={idx} onClick={item.action} className="flex justify-between items-center p-4 py-4 md:py-5 border-b border-slate-100 last:border-0 active:bg-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
                                     <div className="flex items-center gap-4 text-slate-700 font-medium">
                                         <item.icon className="w-5 h-5 text-slate-600" />
-                                        <div className="flex flex-col">
-                                            <span>{item.label}</span>
-                                            {item.label === "Saved Places" && <span className="text-xs text-slate-400 font-normal">{savedPlaces}</span>}
-                                        </div>
+                                        <span>{item.label}</span>
                                     </div>
                                     <ChevronRight className="w-5 h-5 text-slate-300" />
                                 </div>
@@ -613,7 +667,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
 
                         <div
                             onClick={onLogout}
-                            className="bg-white p-4 py-4 md:py-5 mt-2 shadow-sm flex items-center justify-center cursor-pointer active:bg-slate-50 hover:bg-slate-50 rounded-none md:rounded-2xl transition-colors border-y border-slate-100 md:border-none"
+                            className="bg-white p-4 py-4 md:py-5 mt-2 shadow-sm flex items-center justify-center cursor-pointer active:bg-slate-50 hover:bg-slate-50 rounded-none md:rounded-lg transition-colors border-y border-slate-100 md:border-none"
                         >
                             <span className="text-red-600 font-bold">Log Out</span>
                         </div>
@@ -873,15 +927,15 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                             <div className="p-4">
                                 <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
                                     {[
-                                        { label: "Cash on Delivery", sub: "Pay when your order arrives", icon: "💵" },
-                                        { label: "GCash", sub: "Linked: +63 912 345 6789", icon: "💙" },
-                                        { label: "Maya", sub: "Not linked", icon: "💚" },
+                                        { label: "Cash on Delivery", sub: "Pay when your order arrives", icon: Banknote, iconClass: "bg-slate-100 text-slate-600" },
+                                        { label: "GCash", sub: "Linked: +63 912 345 6789", icon: Smartphone, iconClass: "bg-blue-50 text-blue-600" },
+                                        { label: "Maya", sub: "Not linked", icon: CreditCard, iconClass: "bg-green-50 text-green-600" },
                                     ].map((method, idx, arr) => (
                                         <div key={method.label}
                                             className={`flex items-center justify-between px-4 py-4 cursor-pointer hover:bg-slate-50 transition-colors ${idx !== arr.length - 1 ? "border-b border-slate-100" : ""}`}>
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-base shrink-0">
-                                                    {method.icon}
+                                                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${method.iconClass}`}>
+                                                    <method.icon className="w-4 h-4" />
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-semibold text-slate-800">{method.label}</p>
@@ -900,7 +954,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
             )}
 
             {activeTab === "notifications" && (
-                <section className="block lg:hidden max-w-xl mx-auto bg-slate-50 min-h-screen pt-0 pb-28">
+                <section className="max-w-xl mx-auto bg-slate-50 min-h-screen pt-0 pb-28">
                     <div className="bg-white p-4 border-b border-slate-100 flex items-center gap-3 sticky top-20 z-10 shadow-sm">
                         <Bell className="w-5 h-5 text-emerald-700" />
                         <h2 className="text-lg font-bold text-slate-900">Notifications</h2>
@@ -923,13 +977,13 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
             )}
 
             {activeTab === "chat" && (
-                <section className="block lg:hidden max-w-xl mx-auto bg-slate-50 h-[calc(100vh-80px-70px)] flex flex-col pt-0 pb-0">
+                <section className="max-w-xl mx-auto bg-slate-50 h-[calc(100vh-80px-70px)] flex flex-col pt-0 pb-0">
                     <div className="bg-emerald-700 p-4 border-b border-emerald-800 flex items-center gap-3 sticky top-20 z-10 shadow-sm text-white">
-                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
                             <Leaf className="w-5 h-5 text-white" strokeWidth={1.5} />
                         </div>
                         <div>
-                            <h3 className="font-bold">Ate Ai's Support</h3>
+                            <h3 className="font-bold">Ate Ai&apos;s Support</h3>
                             <div className="flex items-center gap-1.5 text-xs text-emerald-100">
                                 <span className="w-2 h-2 rounded-full bg-green-400"></span> Online
                             </div>
@@ -938,7 +992,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
                         {dummyChatMessages.map(msg => (
                             <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-                                <div className={`max-w-[85%] rounded-2xl p-3 shadow-sm ${msg.sender === "user" ? "bg-emerald-600 text-white rounded-tr-sm" : "bg-white border border-slate-100 text-slate-800 rounded-tl-sm"}`}>
+                                <div className={`max-w-[85%] rounded-lg p-3 shadow-sm ${msg.sender === "user" ? "bg-emerald-600 text-white rounded-tr-sm" : "bg-white border border-slate-100 text-slate-800 rounded-tl-sm"}`}>
                                     <p className="text-sm">{msg.text}</p>
                                     <span className={`text-[10px] block mt-1 ${msg.sender === "user" ? "text-emerald-200 text-right" : "text-slate-400"}`}>{msg.time}</span>
                                 </div>
@@ -956,12 +1010,12 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                     setChatMessage("");
                                 }
                             }}
-                            className="flex-1 bg-slate-100 border-transparent rounded-full px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:bg-white transition-all placeholder:text-slate-400"
+                            className="flex-1 bg-slate-100 border-transparent rounded-lg px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:bg-white transition-all placeholder:text-slate-400"
                         />
                         <motion.button
                             whileTap={{ scale: 0.9 }}
                             onClick={() => { if (chatMessage.trim()) setChatMessage(""); }}
-                            className="w-11 h-11 bg-emerald-700 rounded-full flex items-center justify-center shrink-0 hover:bg-emerald-800 transition-colors shadow-sm shadow-emerald-700/20"
+                            className="w-11 h-11 bg-emerald-700 rounded-lg flex items-center justify-center shrink-0 hover:bg-emerald-800 transition-colors shadow-sm shadow-emerald-700/20"
                         >
                             <Send className="w-4 h-4 text-white ml-0.5" strokeWidth={2} />
                         </motion.button>
@@ -974,24 +1028,24 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                     <div className="bg-emerald-800 p-4 border-b border-emerald-900 flex items-center gap-3 sticky top-20 z-10 shadow-sm text-white">
                         <button
                             onClick={() => setActiveTab("home")}
-                            className="hidden lg:flex p-2 -ml-2 mr-1 hover:bg-emerald-700/50 rounded-full transition-colors"
+                            className="hidden lg:flex p-2 -ml-2 mr-1 hover:bg-emerald-700/50 rounded-lg transition-colors"
                             aria-label="Go back to menu"
                         >
                             <ArrowLeft className="w-5 h-5 text-white" />
                         </button>
-                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
                             <Store className="w-5 h-5 text-white" strokeWidth={1.5} />
                         </div>
                         <div className="flex-1">
                             <h3 className="font-bold">Custom Order Request</h3>
                             <div className="flex items-center gap-1.5 text-xs text-emerald-100">
-                                Let's discuss your special request!
+                                Let&apos;s discuss your special request!
                             </div>
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
                         <div className="flex justify-start">
-                            <div className="max-w-[85%] rounded-2xl p-3 shadow-sm bg-white border border-slate-100 text-slate-800 rounded-tl-sm">
+                            <div className="max-w-[85%] rounded-lg p-3 shadow-sm bg-white border border-slate-100 text-slate-800 rounded-tl-sm">
                                 <p className="text-sm font-semibold mb-2">Welcome to Custom Orders!</p>
                                 <p className="text-sm text-slate-600">Please let us know the details of your request (e.g., specific flavors, bulk quanties, dietary restrictions).</p>
                                 <span className="text-[10px] block mt-2 text-slate-400">Just now</span>
@@ -1020,15 +1074,17 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                     </div>
                 </section>
             )}
+                </div>
+            </div>
 
             {/* Mobile + Tablet Bottom Navigation */}
             <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                 <div className="flex items-center justify-around px-2 h-16">
                     {[
-                        { id: "home", label: "Home", icon: Store },
-                        { id: "orders", label: "Orders", icon: ReceiptText },
-                        { id: "chat", label: "Support", icon: Headset },
-                        { id: "profile", label: "Account", icon: User },
+                        { id: "home" as DashboardTab, label: "Home", icon: Store },
+                        { id: "orders" as DashboardTab, label: "Orders", icon: ReceiptText },
+                        { id: "chat" as DashboardTab, label: "Support", icon: Headset },
+                        { id: "profile" as DashboardTab, label: "Account", icon: User },
                     ].map((tab) => {
                         const isActive = activeTab === tab.id || (tab.id === "profile" && activeTab === "settings");
                         return (
@@ -1036,7 +1092,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                 key={tab.id}
                                 whileTap={{ scale: 0.92 }}
                                 onClick={() => {
-                                    setActiveTab(tab.id as any);
+                                    setActiveTab(tab.id);
                                     if (tab.id === "orders") {
                                         setOrderAnimKey(prev => prev + 1);
                                     }
@@ -1079,13 +1135,13 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-sm bg-white rounded-3xl p-6 sm:p-8 shadow-2xl z-10"
+                            className="relative w-full max-w-sm bg-white rounded-xl p-6 sm:p-8 shadow-2xl z-10"
                         >
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">My Profile</h2>
                                 <button
                                     onClick={() => setShowProfileModal(false)}
-                                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                                    className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
@@ -1150,12 +1206,12 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl z-10 flex flex-col items-center"
+                            className="relative w-full max-w-sm bg-white rounded-xl p-6 shadow-2xl z-10 flex flex-col items-center"
                         >
                             <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-4 w-full text-left">Manage Saved Places</h3>
-                            <div className="relative w-full h-80 rounded-2xl overflow-hidden bg-emerald-50 mb-6 border border-slate-100 flex-shrink-0">
+                            <div className="relative w-full h-80 rounded-lg overflow-hidden bg-emerald-50 mb-6 border border-slate-100 flex-shrink-0">
                                 <LocationPicker
-                                    onLocationSelect={(addr, lat, lng) => {
+                                    onLocationSelect={(addr) => {
                                         setSavedPlaces(addr);
                                         setShowMapModal(false);
                                     }}

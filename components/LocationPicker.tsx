@@ -100,7 +100,7 @@ export default function LocationPicker({ onLocationSelect, initialLat, initialLn
                     </div>
 
                     {/* Target Reticle Shadow */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-black/15 rounded-full blur-[2px] pointer-events-none transition-opacity duration-200" style={{ opacity: isMoving ? 0.3 : 0.8 }} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-black/15 rounded-lg blur-[2px] pointer-events-none transition-opacity duration-200" style={{ opacity: isMoving ? 0.3 : 0.8 }} />
 
                     <div className="absolute bottom-6 left-4 right-4 z-10 flex flex-col gap-2">
                         <div className="bg-white/90 backdrop-blur-md px-4 py-3 rounded-xl shadow-lg border border-slate-100 text-center mx-auto w-full md:w-auto">
@@ -109,7 +109,7 @@ export default function LocationPicker({ onLocationSelect, initialLat, initialLn
                         </div>
                         <button
                             onClick={handlePinConfirmed}
-                            className="w-full bg-emerald-700 text-white font-bold rounded-2xl py-4 shadow-xl hover:bg-emerald-800 transition-colors shadow-emerald-900/20 active:scale-[0.98]"
+                            className="w-full bg-emerald-700 text-white font-bold rounded-lg py-4 shadow-xl hover:bg-emerald-800 transition-colors shadow-emerald-900/20 active:scale-[0.98]"
                         >
                             Confirm Address Area
                         </button>
@@ -120,7 +120,7 @@ export default function LocationPicker({ onLocationSelect, initialLat, initialLn
                     <div className="p-4 border-b border-slate-100 flex items-center gap-3 shrink-0 sticky top-0 bg-white/80 backdrop-blur-md z-10">
                         <button
                             onClick={() => setStep("map")}
-                            className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center hover:bg-slate-100 text-slate-500 transition-colors"
+                            className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-slate-100 text-slate-500 transition-colors"
                         >
                             <ArrowLeft className="w-4 h-4" />
                         </button>
