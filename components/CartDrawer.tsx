@@ -109,7 +109,7 @@ export default function CartDrawer({
                             ) : (
                                 <div className="space-y-4">
                                     {cartItems.map((item) => (
-                                        <div key={item.id} className="flex gap-4 bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                                        <div key={item.id} className="flex gap-4 bg-white p-3 rounded-md border border-slate-100 shadow-sm">
                                             <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-50">
                                                 <Image src={item.image} alt={item.name} fill className="object-cover" />
                                             </div>
@@ -142,10 +142,10 @@ export default function CartDrawer({
 
                             {/* Checkout Form */}
                             {cartItems.length > 0 && (
-                                <div className="space-y-6 bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+                                <div className="space-y-6 bg-white p-6 rounded-md border border-slate-100 shadow-sm">
                                     <h3 className="text-lg font-bold tracking-tight text-slate-900">Order Details</h3>
 
-                                    <div className="flex bg-slate-100 p-1 rounded-xl mb-2">
+                                    <div className="flex bg-slate-100 p-1 rounded-md mb-2">
                                         <button
                                             onClick={() => setDeliveryMode("delivery")}
                                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${deliveryMode === "delivery" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
@@ -170,7 +170,7 @@ export default function CartDrawer({
                                                     type="text"
                                                     readOnly
                                                     value="Oct 24, 2024"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-slate-900 font-medium cursor-pointer hover:bg-slate-100 transition-colors outline-none focus:border-emerald-500"
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-md py-3 pl-12 pr-4 text-slate-900 font-medium cursor-pointer hover:bg-slate-100 transition-colors outline-none focus:border-emerald-500"
                                                 />
                                             </div>
                                             <p className="text-xs text-amber-600 mt-1.5 ml-1 font-medium">*Requires 3 days advance notice</p>
@@ -182,7 +182,7 @@ export default function CartDrawer({
                                                 <div className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Delivery Address</div>
                                                 <div
                                                     onClick={() => setShowMapModal(true)}
-                                                    className="relative cursor-pointer rounded-xl overflow-hidden bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors"
+                                                    className="relative cursor-pointer rounded-md overflow-hidden bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors"
                                                 >
                                                     {/* Shopee-style stripe */}
                                                     <div className="h-1 w-full" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #ef4444, #ef4444 10px, transparent 10px, transparent 20px, #3b82f6 20px, #3b82f6 30px, transparent 30px, transparent 40px)' }}></div>
@@ -206,7 +206,7 @@ export default function CartDrawer({
                                                 <motion.button
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={() => setSelectedPayment("cod")}
-                                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${selectedPayment === "cod"
+                                                    className={`flex items-center gap-3 p-3 rounded-md border transition-all ${selectedPayment === "cod"
                                                         ? "border-emerald-500 bg-emerald-50/50 ring-1 ring-emerald-500/20"
                                                         : "border-slate-200 hover:border-slate-300"
                                                         }`}
@@ -220,7 +220,7 @@ export default function CartDrawer({
                                                 <motion.button
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={() => setSelectedPayment("online")}
-                                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${selectedPayment === "online"
+                                                    className={`flex items-center gap-3 p-3 rounded-md border transition-all ${selectedPayment === "online"
                                                         ? "border-emerald-500 bg-emerald-50/50 ring-1 ring-emerald-500/20"
                                                         : "border-slate-200 hover:border-slate-300"
                                                         }`}
@@ -284,7 +284,7 @@ export default function CartDrawer({
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-sm bg-white rounded-xl p-6 shadow-2xl z-10 flex flex-col items-center"
+                            className="relative w-full max-w-sm bg-white rounded-md p-6 shadow-2xl z-10 flex flex-col items-center"
                         >
                             <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-4 w-full text-left">Pin Location</h3>
                             <div className="relative w-full h-80 rounded-lg overflow-hidden bg-emerald-50 mb-6 border border-slate-100 flex-shrink-0">
@@ -298,7 +298,7 @@ export default function CartDrawer({
                             <motion.button
                                 whileTap={{ scale: 0.96 }}
                                 onClick={() => setShowMapModal(false)}
-                                className="w-full text-slate-500 font-semibold rounded-xl py-3 hover:bg-slate-50 transition-colors"
+                                className="w-full text-slate-500 font-semibold rounded-md py-3 hover:bg-slate-50 transition-colors"
                             >
                                 Cancel
                             </motion.button>
@@ -322,7 +322,7 @@ export default function CartDrawer({
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-sm bg-white rounded-xl p-6 shadow-2xl z-10 flex flex-col items-center"
+                            className="relative w-full max-w-sm bg-white rounded-md p-6 shadow-2xl z-10 flex flex-col items-center"
                         >
                             <div className="absolute top-4 right-4">
                                 <button
@@ -347,7 +347,7 @@ export default function CartDrawer({
                                         <QrCode className="w-12 h-12 text-slate-400 absolute" />
                                     </div>
 
-                                    <div className="w-full bg-slate-50 rounded-xl p-4 mb-6 border border-slate-100">
+                                    <div className="w-full bg-slate-50 rounded-md p-4 mb-6 border border-slate-100">
                                         <div className="flex justify-between items-center mb-2">
                                             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Account Name</span>
                                             <span className="text-sm font-bold text-slate-900">Ate Ai</span>
@@ -361,7 +361,7 @@ export default function CartDrawer({
                                     <motion.button
                                         whileTap={{ scale: 0.96 }}
                                         onClick={() => setPaymentStep("upload")}
-                                        className="w-full bg-emerald-700 text-white font-bold rounded-xl py-4 shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors"
+                                        className="w-full bg-emerald-700 text-white font-bold rounded-md py-4 shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors"
                                     >
                                         I have paid, Next Step
                                     </motion.button>
@@ -383,7 +383,7 @@ export default function CartDrawer({
                                     <motion.button
                                         whileTap={{ scale: 0.96 }}
                                         onClick={triggerSuccessState}
-                                        className="w-full bg-emerald-700 text-white font-bold rounded-xl py-4 shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors"
+                                        className="w-full bg-emerald-700 text-white font-bold rounded-md py-4 shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors"
                                     >
                                         Submit Order
                                     </motion.button>
@@ -407,7 +407,7 @@ export default function CartDrawer({
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white p-10 rounded-xl shadow-2xl flex flex-col items-center max-w-sm mx-4 text-center"
+                            className="bg-white p-10 rounded-md shadow-2xl flex flex-col items-center max-w-sm mx-4 text-center"
                         >
                             <div className="w-24 h-24 bg-emerald-100 rounded-lg flex items-center justify-center mb-6">
                                 <CheckCircle2 className="w-12 h-12 text-emerald-600" strokeWidth={2} />

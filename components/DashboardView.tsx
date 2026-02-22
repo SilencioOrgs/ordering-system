@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ShoppingBag, Leaf, ShoppingCart, User, Star, X, MapPin, CreditCard, Settings, HelpCircle, ChevronRight, Store, ReceiptText, Bell, MessageCircle, Send, ArrowLeft, Headset, Banknote, Smartphone } from "lucide-react";
+import { Search, ShoppingBag, Leaf, ShoppingCart, User, Star, X, MapPin, CreditCard, Settings, HelpCircle, ChevronRight, Store, ReceiptText, Bell, MessageCircle, Send, ArrowLeft, Headset, Banknote, Smartphone, Plus } from "lucide-react";
 import Image from "next/image";
 import { products, categories, Product } from "@/lib/data";
 import LocationPicker from "./LocationPicker";
@@ -373,44 +373,55 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                         </div>
 
                         {filteredProducts.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                                 {filteredProducts.map((product, idx) => (
                                     <motion.div
                                         key={product.id}
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: idx * 0.05, duration: 0.3 }}
-                                        className="bg-white rounded-xl p-3 sm:p-4 shadow-[0_12px_40px_rgba(0,0,0,0.12)] flex flex-row sm:flex-col gap-3 sm:gap-0 group transition-all border border-slate-100/50 hover:shadow-[0_20px_60px_rgba(0,0,0,0.16)] sm:hover:-translate-y-1"
+                                        className="relative bg-transparent rounded-none p-0 border-0 shadow-none flex flex-col gap-2 sm:bg-white sm:rounded-[24px] sm:p-[10px] sm:shadow-[0_12px_40px_rgba(0,0,0,0.12)] sm:gap-0 group transition-all sm:border sm:border-slate-100/50 sm:hover:shadow-[0_20px_60px_rgba(0,0,0,0.16)] sm:hover:-translate-y-1"
                                     >
-                                        <div className="w-[110px] h-[110px] sm:w-full sm:h-auto sm:aspect-[4/3] relative rounded-lg overflow-hidden bg-slate-100 shrink-0">
+                                        <div
+                                            onClick={() => setSelectedProduct(product)}
+                                            className="relative w-full aspect-square sm:aspect-[4/3] rounded-[14px] overflow-hidden bg-slate-100 text-left cursor-pointer"
+                                        >
                                             <Image
                                                 src={product.image}
                                                 alt={product.name}
                                                 fill
-                                                className="object-cover"
+                                                className="object-cover object-center scale-[1.12]"
                                             />
                                             {product.isBestSeller && (
-                                                <div className="hidden sm:flex absolute top-3 left-3 bg-emerald-800/90 backdrop-blur-md text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg shadow-sm z-10 items-center gap-1.5 border border-emerald-700/50">
-                                                    <Star className="w-3.5 h-3.5 fill-white" /> Best Seller
+                                                <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-emerald-700 text-white text-[10px] sm:text-[11px] font-semibold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-[14px] z-10 items-center gap-1.5 border border-emerald-700/50 inline-flex">
+                                                    <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white" /> Most ordered
                                                 </div>
                                             )}
+                                            <motion.button
+                                                whileTap={{ scale: 0.92 }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleAddToCart(product);
+                                                }}
+                                                className="absolute bottom-2 right-2 sm:hidden w-10 h-10 bg-emerald-700 text-white rounded-full flex items-center justify-center shadow-md shadow-emerald-700/25"
+                                                aria-label={`Add ${product.name} to cart`}
+                                            >
+                                                <Plus className="w-5 h-5" />
+                                            </motion.button>
                                         </div>
-                                        <div className="flex-1 flex flex-col text-left items-start sm:pt-4">
-                                            <h3 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight line-clamp-1 w-full">
+                                        <div className="flex-1 flex flex-col text-left items-start sm:pt-4 px-0.5 sm:px-0">
+                                            <h3 className="text-[16px] sm:text-xl font-semibold sm:font-bold text-slate-900 tracking-tight line-clamp-2 sm:line-clamp-1 w-full leading-tight">
                                                 {product.name}
                                             </h3>
 
-                                            <div className="flex items-center gap-1 mt-0.5 sm:mt-1 text-[11px] sm:text-sm">
+                                            <div className="hidden sm:flex items-center gap-1 mt-0.5 sm:mt-1 text-[11px] sm:text-sm">
                                                 <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                                                 <span className="font-bold text-slate-700">4.9 <span className="font-normal text-slate-500">(500+)</span></span>
                                                 <span className="text-slate-300 mx-1">•</span>
                                                 <span className="text-slate-500 line-clamp-1">{product.category}</span>
                                             </div>
 
-                                            <div className="flex sm:hidden items-center gap-1 mt-0.5 text-[11px] text-slate-500">
-                                                <span className="text-emerald-600 font-bold shrink-0">Free</span>
-                                                <span className="line-through text-slate-400 shrink-0">₱45.00</span>
-                                                <span className="text-slate-300 mx-1 text-[8px]">•</span>
+                                            <div className="hidden sm:flex items-center gap-1 mt-0.5 text-[11px] text-slate-500">
                                                 <span className="truncate">From 25 mins</span>
                                             </div>
 
@@ -418,8 +429,8 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                                 The top choice among all our customers, delicious, authentic and a part of an amazing experience!
                                             </p>
 
-                                            <div className="flex justify-between items-end sm:items-center w-full mt-auto sm:pt-4">
-                                                <div className="text-base sm:text-xl font-black text-slate-900 tracking-tight">
+                                            <div className="flex justify-between items-end sm:items-center w-full mt-1 sm:mt-auto sm:pt-4">
+                                                <div className="text-[14px] sm:text-xl font-black text-slate-900 tracking-tight">
                                                     ₱{product.price}.00
                                                 </div>
                                                 <div className="hidden sm:flex gap-0.5 items-center">
@@ -430,32 +441,18 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                                 </div>
                                             </div>
 
-                                            <div className="flex gap-2 w-full mt-2 sm:mt-5">
-                                                <motion.button
-                                                    whileTap={{ scale: 0.98 }}
-                                                    onClick={() => handleAddToCart(product)}
-                                                    className="flex sm:hidden w-full items-center gap-3 border border-slate-200 rounded-xl py-1.5 px-2 hover:bg-slate-50 transition-colors"
-                                                >
-                                                    <div className="bg-emerald-100 p-1.5 rounded-lg flex items-center justify-center shrink-0">
-                                                        <ShoppingBag className="w-4 h-4 text-emerald-700" />
-                                                    </div>
-                                                    <div className="flex flex-col text-left justify-center py-0.5">
-                                                        <span className="text-[11px] font-bold text-slate-800 leading-none">Add to Cart</span>
-                                                        <span className="text-[10px] text-slate-500 leading-none mt-1">Free delivery fee</span>
-                                                    </div>
-                                                </motion.button>
-
+                                            <div className="hidden sm:flex gap-2 w-full mt-2 sm:mt-5">
                                                 <motion.button
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={() => setSelectedProduct(product)}
-                                                    className="hidden sm:block flex-1 bg-white text-emerald-700 border-2 border-emerald-700 font-bold py-3 rounded-md hover:bg-emerald-50 transition-colors text-sm shadow-sm"
+                                                    className="hidden sm:block flex-1 bg-white text-emerald-700 border-2 border-emerald-700 font-bold py-2.5 px-[10px] rounded-[24px] hover:bg-emerald-50 transition-colors text-sm shadow-sm"
                                                 >
                                                     More details
                                                 </motion.button>
                                                 <motion.button
                                                     whileTap={{ scale: 0.95 }}
                                                     onClick={() => handleAddToCart(product)}
-                                                    className="hidden sm:flex bg-emerald-700 text-white p-3 rounded-md hover:bg-emerald-800 transition-colors items-center justify-center shrink-0 w-12 h-12 shadow-md shadow-emerald-700/20"
+                                                    className="hidden sm:flex bg-emerald-700 text-white p-3 rounded-[14px] hover:bg-emerald-800 transition-colors items-center justify-center shrink-0 w-12 h-12 shadow-md shadow-emerald-700/20"
                                                 >
                                                     <ShoppingCart className="w-5 h-5" strokeWidth={2.5} />
                                                 </motion.button>
@@ -514,7 +511,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.1 + orderIdx * 0.1 }}
                                     onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
-                                    className={`bg-white p-6 shadow-sm border border-slate-100 cursor-pointer transition-all hover:shadow-md ${isExpanded ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}
+                                    className={`bg-white p-6 shadow-sm border border-slate-100 cursor-pointer transition-all hover:shadow-md ${isExpanded ? 'rounded-t-md border-b-0' : 'rounded-md'}`}
                                 >
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
@@ -556,7 +553,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                             transition={{ duration: 0.3 }}
                                             className="overflow-hidden"
                                         >
-                                            <div className="bg-white rounded-b-xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-t-0 border-slate-100">
+                                            <div className="bg-white rounded-b-md p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-t-0 border-slate-100">
                                                 <h4 className="text-[15px] font-black text-slate-900 mb-6 w-full text-left tracking-tight">Tracking Details</h4>
                                                 <div className="relative">
                                                     {[
@@ -797,7 +794,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
 
                             <div className="p-4 space-y-3">
 
-                                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                                <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
                                     <div className="px-4 pt-4 pb-1">
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Personal Info</p>
                                     </div>
@@ -839,7 +836,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                     </div>
                                 </div>
 
-                                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                                <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
                                     <div className="px-4 pt-4 pb-1">
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Security</p>
                                     </div>
@@ -910,7 +907,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                 <h2 className="text-base font-bold text-slate-900">My Addresses</h2>
                             </div>
                             <div className="p-4">
-                                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                                <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
                                     <div
                                         onClick={() => setShowMapModal(true)}
                                         className="flex items-center justify-between px-4 py-4 cursor-pointer hover:bg-slate-50 transition-colors"
@@ -946,7 +943,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                 <h2 className="text-base font-bold text-slate-900">Payment Methods</h2>
                             </div>
                             <div className="p-4">
-                                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                                <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
                                     {[
                                         { label: "Cash on Delivery", sub: "Pay when your order arrives", icon: Banknote, iconClass: "bg-slate-100 text-slate-600" },
                                         { label: "GCash", sub: "Linked: +63 912 345 6789", icon: Smartphone, iconClass: "bg-blue-50 text-blue-600" },
@@ -1082,7 +1079,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                 placeholder="Describe your custom order..."
                                 value={chatMessage}
                                 onChange={(e) => setChatMessage(e.target.value)}
-                                className="flex-1 bg-slate-100 border-transparent rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:bg-white transition-all placeholder:text-slate-400"
+                                className="flex-1 bg-slate-100 border-transparent rounded-md px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:bg-white transition-all placeholder:text-slate-400"
                             />
                             <motion.button
                                 whileTap={{ scale: 0.9 }}
@@ -1156,7 +1153,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-sm bg-white rounded-xl p-6 sm:p-8 shadow-2xl z-10"
+                            className="relative w-full max-w-sm bg-white rounded-md p-6 sm:p-8 shadow-2xl z-10"
                         >
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">My Profile</h2>
@@ -1190,7 +1187,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                     <motion.button
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => setShowProfileModal(false)}
-                                        className="w-full bg-emerald-700 text-white font-semibold rounded-xl py-3 shadow-md shadow-emerald-700/20 hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2"
+                                        className="w-full bg-emerald-700 text-white font-semibold rounded-md py-3 shadow-md shadow-emerald-700/20 hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2"
                                     >
                                         Save Changes
                                     </motion.button>
@@ -1201,7 +1198,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                             setShowProfileModal(false);
                                             onLogout();
                                         }}
-                                        className="w-full bg-red-50 text-red-600 font-bold rounded-xl py-3 hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                                        className="w-full bg-red-50 text-red-600 font-bold rounded-md py-3 hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
                                     >
                                         Logout
                                     </motion.button>
@@ -1227,7 +1224,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-sm bg-white rounded-xl p-6 shadow-2xl z-10 flex flex-col items-center"
+                            className="relative w-full max-w-sm bg-white rounded-md p-6 shadow-2xl z-10 flex flex-col items-center"
                         >
                             <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-4 w-full text-left">Manage Saved Places</h3>
                             <div className="relative w-full h-80 rounded-lg overflow-hidden bg-emerald-50 mb-6 border border-slate-100 flex-shrink-0">
@@ -1241,7 +1238,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                             <motion.button
                                 whileTap={{ scale: 0.96 }}
                                 onClick={() => setShowMapModal(false)}
-                                className="w-full text-slate-500 font-semibold rounded-xl py-3 hover:bg-slate-50 transition-colors"
+                                className="w-full text-slate-500 font-semibold rounded-md py-3 hover:bg-slate-50 transition-colors"
                             >
                                 Close
                             </motion.button>

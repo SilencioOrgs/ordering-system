@@ -185,14 +185,14 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                         <motion.div
                             key={product.id}
                             whileHover={{ y: -4 }}
-                            className="bg-white rounded-xl p-3 sm:p-4 shadow-[0_12px_40px_rgba(0,0,0,0.12)] flex flex-row sm:flex-col gap-3 sm:gap-0 group transition-all border border-slate-100/50 hover:shadow-[0_20px_60px_rgba(0,0,0,0.16)] sm:hover:-translate-y-1"
+                            className="bg-white rounded-[24px] p-[10px] shadow-[0_12px_40px_rgba(0,0,0,0.12)] flex flex-row sm:flex-col gap-3 sm:gap-0 group transition-all border border-slate-100/50 hover:shadow-[0_20px_60px_rgba(0,0,0,0.16)] sm:hover:-translate-y-1"
                         >
-                            <div className="w-[110px] h-[110px] sm:w-full sm:h-auto sm:aspect-[4/3] relative rounded-lg overflow-hidden bg-slate-100 shrink-0">
+                            <div className="w-[110px] h-[110px] sm:w-full sm:h-auto sm:aspect-[4/3] relative rounded-[14px] overflow-hidden bg-slate-100 shrink-0">
                                 <Image
                                     src={product.image}
                                     alt={product.name}
                                     fill
-                                    className="object-cover"
+                                    className="object-cover object-center scale-[1.12]"
                                 />
                                 {product.isBestSeller && (
                                     <div className="hidden sm:flex absolute top-3 left-3 bg-emerald-800/90 backdrop-blur-md text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg shadow-sm z-10 items-center gap-1.5 border border-emerald-700/50">
@@ -213,9 +213,6 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                                 </div>
 
                                 <div className="flex sm:hidden items-center gap-1 mt-0.5 text-[11px] text-slate-500">
-                                    <span className="text-emerald-600 font-bold shrink-0">Free</span>
-                                    <span className="line-through text-slate-400 shrink-0">₱45.00</span>
-                                    <span className="text-slate-300 mx-1 text-[8px]">•</span>
                                     <span className="truncate">From 25 mins</span>
                                 </div>
 
@@ -239,28 +236,25 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                                     <motion.button
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => setShowLoginModal(true)}
-                                        className="flex sm:hidden w-full items-center gap-3 border border-slate-200 rounded-xl py-1.5 px-2 hover:bg-slate-50 transition-colors"
+                                        className="flex sm:hidden w-full h-11 items-center justify-center gap-2 border border-slate-200 rounded-[24px] px-[10px] hover:bg-slate-50 transition-colors"
                                     >
-                                        <div className="bg-emerald-100 p-1.5 rounded-lg flex items-center justify-center shrink-0">
+                                        <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center shrink-0">
                                             <ShoppingBag className="w-4 h-4 text-emerald-700" />
                                         </div>
-                                        <div className="flex flex-col text-left justify-center py-0.5">
-                                            <span className="text-[11px] font-bold text-slate-800 leading-none">Add to Cart</span>
-                                            <span className="text-[10px] text-slate-500 leading-none mt-1">Free delivery fee</span>
-                                        </div>
+                                        <span className="text-[13px] font-bold text-slate-800 leading-none">Add to Cart</span>
                                     </motion.button>
 
                                     <motion.button
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => setSelectedProduct(product)}
-                                        className="hidden sm:block flex-1 bg-white text-emerald-700 border-2 border-emerald-700 font-bold py-3 rounded-md hover:bg-emerald-50 transition-colors text-sm shadow-sm"
+                                        className="hidden sm:block flex-1 bg-white text-emerald-700 border-2 border-emerald-700 font-bold py-2.5 px-[10px] rounded-[24px] hover:bg-emerald-50 transition-colors text-sm shadow-sm"
                                     >
                                         More details
                                     </motion.button>
                                     <motion.button
                                         whileTap={{ scale: 0.95 }}
                                         onClick={() => setShowLoginModal(true)}
-                                        className="hidden sm:flex bg-emerald-700 text-white p-3 rounded-md hover:bg-emerald-800 transition-colors items-center justify-center shrink-0 w-12 h-12 shadow-md shadow-emerald-700/20"
+                                        className="hidden sm:flex bg-emerald-700 text-white p-3 rounded-[14px] hover:bg-emerald-800 transition-colors items-center justify-center shrink-0 w-12 h-12 shadow-md shadow-emerald-700/20"
                                     >
                                         <ShoppingCart className="w-5 h-5" strokeWidth={2.5} />
                                     </motion.button>
@@ -305,8 +299,8 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                                         { name: "Drinks", img: "/images/cat_drinks.png" },
                                         { name: "Merienda", img: "/images/cat_merienda.png" },
                                     ].map((cat, idx) => (
-                                        <div key={`${groupIdx}-${idx}`} className="relative bg-white rounded-xl p-2 text-center shadow-sm cursor-pointer hover:shadow-md transition-all border border-slate-100 flex flex-col items-center justify-end gap-3 h-48 w-40 shrink-0 overflow-hidden group">
-                                            <div className="absolute inset-x-2 top-2 bottom-12 rounded-[1.5rem] overflow-hidden">
+                                        <div key={`${groupIdx}-${idx}`} className="relative bg-white rounded-[24px] p-[10px] text-center shadow-sm cursor-pointer hover:shadow-md transition-all border border-slate-100 flex flex-col items-center justify-end gap-3 h-48 w-40 shrink-0 overflow-hidden group">
+                                            <div className="absolute inset-x-[10px] top-[10px] bottom-12 rounded-[14px] overflow-hidden">
                                                 <Image src={cat.img} alt={cat.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                                             </div>
@@ -328,7 +322,7 @@ export default function LandingView({ onLogin }: LandingViewProps) {
             <section className="py-20 max-w-6xl mx-auto px-4 sm:px-6">
                 <div className="text-center mb-12">
                     <h2 className="text-3xl font-bold text-slate-900 tracking-tight uppercase">Customer Reviews</h2>
-                    <div className="flex justify-center gap-1 mt-3 shadow-sm">
+                    <div className="flex justify-center gap-1 mt-3">
                         {[...Array(5)].map((_, i) => (
                             <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />
                         ))}
@@ -342,7 +336,7 @@ export default function LandingView({ onLogin }: LandingViewProps) {
                         { name: "Ana Reyes", review: "Our family gathering was a hit because of the party trays! Everyone kept asking where I bought the sapin-sapin. 10/10 recommend." }
                     ].map((review, i) => (
                         <div key={i} className="bg-white p-8 rounded-xl border border-slate-100 shadow-sm relative hover:shadow-md transition-shadow">
-                            <div className="flex gap-1 mb-4 shadow-sm">
+                            <div className="flex gap-1 mb-4">
                                 {[...Array(5)].map((_, sIdx) => (
                                     <Star key={sIdx} className="w-4 h-4 text-amber-400 fill-amber-400" />
                                 ))}

@@ -32,7 +32,7 @@ export default function ProductModal({ product, isOpen, onClose, onAction, actio
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: "100%", opacity: 0 }}
                         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="relative w-full max-w-2xl bg-white rounded-t-xl sm:rounded-xl overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
+                        className="relative w-full max-w-2xl bg-white rounded-t-md sm:rounded-md overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
                     >
                         <button
                             onClick={onClose}
@@ -93,8 +93,8 @@ export default function ProductModal({ product, isOpen, onClose, onAction, actio
                                     </div>
                                 )}
 
-                                <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 mt-6 flex items-start gap-3">
-                                    <div className="bg-emerald-100 p-2 rounded-xl text-emerald-700 shrink-0">
+                                <div className="bg-emerald-50 border border-emerald-100 rounded-md p-4 mt-6 flex items-start gap-3">
+                                    <div className="bg-emerald-100 p-2 rounded-md text-emerald-700 shrink-0">
                                         <Truck className="w-5 h-5" />
                                     </div>
                                     <div>
@@ -106,7 +106,7 @@ export default function ProductModal({ product, isOpen, onClose, onAction, actio
                         </div>
 
                         {/* Sticky Bottom Action Bar */}
-                        <div className="absolute bottom-0 inset-x-0 p-4 sm:p-6 bg-white border-t border-slate-100 sm:relative sm:border-t-0 sm:pt-0 pb-6 rounded-b-xl">
+                        <div className="absolute bottom-0 inset-x-0 p-4 sm:p-6 bg-white border-t border-slate-100 sm:relative sm:border-t-0 sm:pt-0 pb-6 rounded-b-md">
                             <motion.button
                                 whileTap={{ scale: 0.98 }}
                                 onClick={onAction}
