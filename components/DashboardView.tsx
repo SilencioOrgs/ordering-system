@@ -416,7 +416,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                             <div className="hidden sm:flex items-center gap-1 mt-0.5 sm:mt-1 text-[11px] sm:text-sm">
                                                 <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                                                 <span className="font-bold text-slate-700">4.9 <span className="font-normal text-slate-500">(500+)</span></span>
-                                                <span className="text-slate-300 mx-1">â€¢</span>
+                                                <span className="text-slate-300 mx-1">|</span>
                                                 <span className="text-slate-500 line-clamp-1">{product.category}</span>
                                             </div>
 
@@ -430,7 +430,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
 
                                             <div className="flex justify-between items-end sm:items-center w-full mt-1 sm:mt-auto sm:pt-4">
                                                 <div className="text-[14px] sm:text-xl font-black text-slate-900 tracking-tight">
-                                                    â‚±{product.price}.00
+                                                    PHP {Number(product.price).toFixed(2)}
                                                 </div>
                                                 <div className="hidden sm:flex gap-0.5 items-center">
                                                     {[...Array(5)].map((_, i) => (
@@ -515,7 +515,7 @@ export default function DashboardView({ cartCount, onOpenCart, onAddToCart, onLo
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
                                             <h3 className="text-xl font-black text-slate-900 tracking-tight">Order #{order.id}</h3>
-                                            <p className="text-slate-500 text-sm mt-1 font-medium">{order.method} â€¢ â‚±{order.price}</p>
+                                            <p className="text-slate-500 text-sm mt-1 font-medium">{order.method} | PHP {Number(order.price).toFixed(2)}</p>
                                         </div>
                                         <div className={`font-bold px-3 py-1.5 rounded-lg text-xs border uppercase tracking-wider flex items-center gap-2 ${order.status === 'Delivered' ? 'bg-slate-50 text-slate-600 border-slate-200' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
                                             {order.status === 'Preparing' && (

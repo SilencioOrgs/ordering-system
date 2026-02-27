@@ -280,7 +280,7 @@ export default function LandingView() {
                                 <div className="flex items-center gap-1 mt-0.5 sm:mt-1 text-[11px] sm:text-sm">
                                     <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                                     <span className="font-bold text-slate-700">4.9 <span className="font-normal text-slate-500">(500+)</span></span>
-                                    <span className="text-slate-300 mx-1">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢</span>
+                                    <span className="text-slate-300 mx-1">|</span>
                                     <span className="text-slate-500 line-clamp-1">{product.category}</span>
                                 </div>
 
@@ -294,7 +294,7 @@ export default function LandingView() {
 
                                 <div className="flex justify-between items-end sm:items-center w-full mt-auto sm:pt-4">
                                     <div className="text-base sm:text-xl font-black text-slate-900 tracking-tight">
-                                        ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â±{product.price}.00
+                                        PHP {Number(product.price).toFixed(2)}
                                     </div>
                                     <div className="hidden sm:flex gap-0.5 items-center">
                                         {[...Array(5)].map((_, i) => (
@@ -797,7 +797,7 @@ export default function LandingView() {
 
                                         <div className="relative">
                                             {signupMethod === "phone" && (
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm">ÃƒÂ°Ã…Â¸Ã¢â‚¬Â¡Ã‚ÂµÃƒÂ°Ã…Â¸Ã¢â‚¬Â¡Ã‚Â­</span>
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm">PH</span>
                                             )}
                                             <input
                                                 type={signupMethod === "phone" ? "tel" : "email"}

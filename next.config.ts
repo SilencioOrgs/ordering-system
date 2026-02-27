@@ -9,6 +9,14 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
+      {
+        protocol: "https",
+        hostname: "gyubjsgvtjigsezuxahn.supabase.co",
+      },
+      {
+        protocol: "https",
         hostname: "placehold.co",
       },
       {
