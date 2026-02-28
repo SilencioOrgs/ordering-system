@@ -115,7 +115,8 @@ export async function POST(req: NextRequest) {
   const subtotal = sanitizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryFee = deliveryMode === "Delivery" ? 50 : 0;
   const isWalletPayment = paymentMethod === "GCash" || paymentMethod === "Maya";
-  const paymentStatus = isWalletPayment ? "Paid" : "Pending";
+  // Match current schema enum values: Pending | Awaiting Verification | Verified | Rejected
+  const paymentStatus = isWalletPayment ? "Verified" : "Pending";
   const orderStatus = isWalletPayment ? "Preparing" : "Pending";
 
   const scheduledDate =
@@ -130,7 +131,10 @@ export async function POST(req: NextRequest) {
       customer_name: body.customerName?.trim() || user.email || "Customer",
       customer_phone: body.customerPhone?.trim() || "",
       delivery_mode: deliveryMode,
-      delivery_address: deliveryMode === "Delivery" ? body.deliveryAddress?.trim() || null : null,
+      delivery_address:
+        deliveryMode === "Delivery" && body.deliveryLat !== null && body.deliveryLng !== null
+          ? `Pinned (${Number(body.deliveryLat).toFixed(5)}, ${Number(body.deliveryLng).toFixed(5)})`
+          : null,
       delivery_lat: deliveryMode === "Delivery" ? body.deliveryLat ?? null : null,
       delivery_lng: deliveryMode === "Delivery" ? body.deliveryLng ?? null : null,
       payment_method: paymentMethod,

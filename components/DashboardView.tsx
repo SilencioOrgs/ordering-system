@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ShoppingBag, Leaf, ShoppingCart, User, Star, X, MapPin, CreditCard, Settings, HelpCircle, ChevronRight, Store, ReceiptText, Bell, MessageCircle, Send, ArrowLeft, Headset, Banknote, Smartphone, Plus, Check, Circle } from "lucide-react";
 import Image from "next/image";
@@ -11,7 +11,6 @@ import { useOrderMessages } from "@/hooks/useOrderMessages";
 import { categories, Product } from "@/lib/data";
 import LocationPicker from "./LocationPicker";
 import ProductModal from "./ProductModal";
-import RatingModal from "./RatingModal";
 
 const promoSlides = [
     "/images/590554498_1300306938783151_7499415934952873_n.jpg",
@@ -45,7 +44,7 @@ function getOrderStepIndex(status: string) {
 
 export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart, onLogout, shouldRedirectToOrders, onRedirectHandled }: DashboardViewProps) {
     const { products, loading: productsLoading } = useProducts();
-    const { orders, loading: ordersLoading, refetch: refetchOrders } = useOrders(user);
+    const { orders, loading: ordersLoading } = useOrders(user);
     const { messages, unreadCount: messagesUnread, markRead, markAllRead } = useOrderMessages(user);
     const [activeCategory, setActiveCategory] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
@@ -61,9 +60,6 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
     const [showNotifications, setShowNotifications] = useState(false);
     const [chatMessage, setChatMessage] = useState("");
     const [orderAnimKey, setOrderAnimKey] = useState(0);
-    const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
-    const [ratingOrderNumber, setRatingOrderNumber] = useState("");
-    const [ratingMessageId, setRatingMessageId] = useState<string | null>(null);
 
     useEffect(() => {
         if (shouldRedirectToOrders) {
@@ -82,25 +78,6 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
         }, 3000);
         return () => clearInterval(interval);
     }, []);
-
-    const autoRatingPrompt = useMemo(() => {
-        const prompt = messages.find((message) => message.message_type === "rating_prompt" && !message.read);
-        if (!prompt) return null;
-
-        const order = orders.find((item) => item.id === prompt.order_id);
-        if (!order || order.rated) return null;
-
-        return {
-            messageId: prompt.id,
-            orderId: order.id,
-            orderNumber: order.order_number,
-        };
-    }, [messages, orders]);
-
-    const activeRatingOrderId = ratingOrderId ?? autoRatingPrompt?.orderId ?? null;
-    const activeRatingOrderNumber =
-        ratingOrderId !== null ? ratingOrderNumber : autoRatingPrompt?.orderNumber ?? "";
-    const activeRatingMessageId = ratingMessageId ?? autoRatingPrompt?.messageId ?? null;
 
     const filteredProducts = products.filter((p) => {
         const matchesCategory = activeCategory === "All" || p.category === activeCategory;
@@ -583,7 +560,9 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                                         </div>
 
                                         <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
-                                            <span className="text-slate-500">{order.payment_method} · {order.payment_status}</span>
+                                            <span className="text-slate-500">
+                                                {order.payment_method} · {order.payment_status === "Verified" ? "Paid" : order.payment_status}
+                                            </span>
                                             <span className="font-bold text-emerald-700">PHP {Number(order.total).toFixed(2)}</span>
                                         </div>
 
@@ -627,15 +606,20 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                                             </div>
                                         )}
 
-                                        {isCancelled && order.rejection_reason && (
+                                        {isCancelled && (
                                             <div className="mt-3 rounded-lg border border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-600">
-                                                <strong>Order Cancelled:</strong> {order.rejection_reason}
+                                                <strong>Order Cancelled:</strong> {order.payment_method === "COD" ? "Please contact store for details." : "Please contact store support."}
                                             </div>
                                         )}
 
-                                        {isDelivered && !order.rated && (
+                                        {order.payment_method === "COD" && order.status !== "Cancelled" && (
                                             <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">
-                                                Please leave a rating for this order.
+                                                Amount to pay in cash: PHP {Number(order.total).toFixed(2)}
+                                            </div>
+                                        )}
+                                        {(order.payment_method === "GCash" || order.payment_method === "Maya") && (
+                                            <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-2.5 text-sm font-medium text-blue-700">
+                                                {order.payment_method} payment is {order.payment_status === "Verified" ? "Paid (mock)" : order.payment_status}. Total: PHP {Number(order.total).toFixed(2)}
                                             </div>
                                         )}
                                     </article>
@@ -1010,16 +994,11 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                                         <button
                                             onClick={(event) => {
                                                 event.stopPropagation();
-                                                const order = orders.find((item) => item.id === message.order_id);
-                                                if (order && !order.rated) {
-                                                    setRatingOrderId(order.id);
-                                                    setRatingOrderNumber(order.order_number);
-                                                    setRatingMessageId(message.id);
-                                                }
+                                                void markRead(message.id);
                                             }}
                                             className="mt-2 text-xs font-bold text-emerald-700 hover:underline"
                                         >
-                                            Rate your order
+                                            Mark as read
                                         </button>
                                     )}
                                 </div>
@@ -1281,25 +1260,6 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                     </div>
                 )}
             </AnimatePresence>
-            <RatingModal
-                key={activeRatingOrderId ?? "rating-modal"}
-                orderId={activeRatingOrderId ?? ""}
-                orderNumber={activeRatingOrderNumber}
-                isOpen={Boolean(activeRatingOrderId)}
-                onClose={() => {
-                    setRatingOrderId(null);
-                    setRatingOrderNumber("");
-                    if (activeRatingMessageId) void markRead(activeRatingMessageId);
-                    setRatingMessageId(null);
-                }}
-                onSubmitted={() => {
-                    setRatingOrderId(null);
-                    setRatingOrderNumber("");
-                    setRatingMessageId(null);
-                    void refetchOrders();
-                    if (activeRatingMessageId) void markRead(activeRatingMessageId);
-                }}
-            />
             {/* Product Details Modal */}
             <ProductModal
                 product={selectedProduct}

@@ -24,11 +24,6 @@ type OrderRow = {
   total: number | null;
   scheduled_date: string | null;
   created_at: string;
-  rejection_reason: string | null;
-  rated: boolean;
-  rating: number | null;
-  rating_note: string | null;
-  delivery_time_minutes: number | null;
   order_items: OrderItemRow[] | null;
 };
 
@@ -45,11 +40,6 @@ export interface OrderWithItems {
   total: number;
   scheduled_date: string | null;
   created_at: string;
-  rejection_reason: string | null;
-  rated: boolean;
-  rating: number | null;
-  rating_note: string | null;
-  delivery_time_minutes: number | null;
   items: Array<{
     id: string;
     product_name: string;
@@ -86,11 +76,6 @@ export function useOrders(user: User | null) {
         total,
         scheduled_date,
         created_at,
-        rejection_reason,
-        rated,
-        rating,
-        rating_note,
-        delivery_time_minutes,
         order_items(id, name, quantity, price)
       `
       )
@@ -118,11 +103,6 @@ export function useOrders(user: User | null) {
           : Number(order.subtotal ?? 0) + Number(order.delivery_fee ?? 0),
       scheduled_date: order.scheduled_date,
       created_at: order.created_at,
-      rejection_reason: order.rejection_reason,
-      rated: Boolean(order.rated),
-      rating: order.rating,
-      rating_note: order.rating_note,
-      delivery_time_minutes: order.delivery_time_minutes,
       items: (order.order_items ?? []).map((item) => ({
         id: item.id,
         product_name: item.name,
