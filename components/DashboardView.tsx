@@ -1,10 +1,11 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ShoppingBag, Leaf, ShoppingCart, User, Star, X, MapPin, CreditCard, Settings, HelpCircle, ChevronRight, Store, ReceiptText, Bell, MessageCircle, Send, ArrowLeft, Headset, Banknote, Smartphone, Plus, Check, Circle } from "lucide-react";
 import Image from "next/image";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 import { useProducts } from "@/hooks/useProducts";
 import { useOrders } from "@/hooks/useOrders";
 import { useOrderMessages } from "@/hooks/useOrderMessages";
@@ -19,6 +20,7 @@ const promoSlides = [
 ];
 
 const chatMessages: Array<{ id: number; sender: "store" | "user"; text: string; time: string }> = [];
+const DEFAULT_SAVED_PLACE = "Pin a location to save your place.";
 
 interface DashboardViewProps {
     user: SupabaseUser | null;
@@ -32,6 +34,12 @@ interface DashboardViewProps {
 
 type DashboardTab = "home" | "orders" | "profile" | "notifications" | "chat" | "custom-order" | "settings";
 
+interface ProfileRecord {
+    full_name: string | null;
+    phone: string | null;
+    email: string | null;
+}
+
 const orderTrackerSteps = ["Order Placed", "Payment Confirmed", "Preparing", "Out for Delivery", "Delivered"] as const;
 
 function getOrderStepIndex(status: string) {
@@ -42,10 +50,24 @@ function getOrderStepIndex(status: string) {
     return 0;
 }
 
+function getUserMetadataString(user: SupabaseUser | null, keys: string[]): string {
+    const metadata = user?.user_metadata;
+    if (!metadata || typeof metadata !== "object") return "";
+
+    for (const key of keys) {
+        const value = (metadata as Record<string, unknown>)[key];
+        if (typeof value === "string" && value.trim()) return value.trim();
+    }
+
+    return "";
+}
+
 export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart, onLogout, shouldRedirectToOrders, onRedirectHandled }: DashboardViewProps) {
     const { products, loading: productsLoading } = useProducts();
     const { orders, loading: ordersLoading } = useOrders(user);
     const { messages, unreadCount: messagesUnread, markRead, markAllRead } = useOrderMessages(user);
+    const metadataName = getUserMetadataString(user, ["full_name", "name"]);
+    const authEmail = user?.email ?? getUserMetadataString(user, ["email"]);
     const [activeCategory, setActiveCategory] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
     const [showToast, setShowToast] = useState(false);
@@ -55,11 +77,30 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
     const [activeTab, setActiveTab] = useState<DashboardTab>("home");
     const [settingsPage, setSettingsPage] = useState<"main" | "account-security" | "addresses" | "payment-methods">("main");
     const [showPasswordFields, setShowPasswordFields] = useState(false);
-    const [savedPlaces, setSavedPlaces] = useState<string>("Pin a location to save your place.");
+    const [savedPlaces, setSavedPlaces] = useState<string>(DEFAULT_SAVED_PLACE);
+    const [profileFullName, setProfileFullName] = useState("");
+    const [profilePhone, setProfilePhone] = useState("");
+    const [profileEmail, setProfileEmail] = useState("");
+    const [profileUsername, setProfileUsername] = useState("");
+    const [isProfileLoading, setIsProfileLoading] = useState(false);
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
+    const [profileFeedback, setProfileFeedback] = useState<string | null>(null);
+    const [showCompleteProfilePrompt, setShowCompleteProfilePrompt] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [showNotifications, setShowNotifications] = useState(false);
     const [chatMessage, setChatMessage] = useState("");
     const [orderAnimKey, setOrderAnimKey] = useState(0);
+    const hasLoadedSavedPlaceRef = useRef(false);
+
+    const displayName =
+        profileFullName.trim() ||
+        metadataName ||
+        authEmail.split("@")[0] ||
+        "Customer";
+
+    const hasAccountSecurityCompleted = Boolean((profileFullName.trim() || metadataName) && profilePhone.trim());
+    const hasAddressCompleted = savedPlaces.trim() !== DEFAULT_SAVED_PLACE;
+    const needsProfileCompletion = !hasAccountSecurityCompleted || !hasAddressCompleted;
 
     useEffect(() => {
         if (shouldRedirectToOrders) {
@@ -78,6 +119,157 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
         }, 3000);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        if (!user?.id) return;
+
+        hasLoadedSavedPlaceRef.current = false;
+        const storageKey = `saved_place_${user.id}`;
+        const saved = window.localStorage.getItem(storageKey);
+        const timeoutId = window.setTimeout(() => {
+            setSavedPlaces(saved?.trim() ? saved : DEFAULT_SAVED_PLACE);
+            hasLoadedSavedPlaceRef.current = true;
+        }, 0);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (!user?.id || !hasLoadedSavedPlaceRef.current) return;
+        window.localStorage.setItem(`saved_place_${user.id}`, savedPlaces);
+    }, [user?.id, savedPlaces]);
+
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const supabase = createClient();
+        let active = true;
+
+        const loadProfile = async () => {
+            setIsProfileLoading(true);
+            setProfileFeedback(null);
+
+            const { data, error } = await supabase
+                .from("profiles")
+                .select("full_name, phone, email")
+                .eq("id", user.id)
+                .maybeSingle();
+
+            if (!active) return;
+
+            if (error) {
+                setProfileFullName(metadataName);
+                setProfilePhone("");
+                setProfileEmail(authEmail);
+                setProfileUsername(
+                    (metadataName || authEmail.split("@")[0] || "customer").replace(/\s+/g, "").toLowerCase()
+                );
+                setProfileFeedback("Unable to fetch profile details right now.");
+                setIsProfileLoading(false);
+                return;
+            }
+
+            const profileData = data as ProfileRecord | null;
+            const fullName = profileData?.full_name?.trim() || metadataName;
+            const phone = profileData?.phone?.trim() || "";
+            const email = profileData?.email?.trim() || authEmail;
+
+            setProfileFullName(fullName);
+            setProfilePhone(phone);
+            setProfileEmail(email);
+            setProfileUsername((fullName || email.split("@")[0] || "customer").replace(/\s+/g, "").toLowerCase());
+            setIsProfileLoading(false);
+
+            if (!profileData?.full_name?.trim() && metadataName) {
+                await supabase
+                    .from("profiles")
+                    .upsert(
+                        {
+                            id: user.id,
+                            full_name: metadataName,
+                            email: email || authEmail || null,
+                            phone: phone || null,
+                        },
+                        { onConflict: "id" }
+                    );
+            }
+        };
+
+        void loadProfile();
+
+        return () => {
+            active = false;
+        };
+    }, [user?.id, metadataName, authEmail]);
+
+    useEffect(() => {
+        if (!user?.id || isProfileLoading) return;
+
+        const dismissKey = `profile_completion_prompt_dismissed_${user.id}`;
+        const dismissed = window.sessionStorage.getItem(dismissKey) === "1";
+        const nextPromptVisibility = needsProfileCompletion && !dismissed;
+
+        if (!needsProfileCompletion) {
+            window.sessionStorage.removeItem(dismissKey);
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            setShowCompleteProfilePrompt(nextPromptVisibility);
+        }, 0);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [user?.id, isProfileLoading, needsProfileCompletion]);
+
+    const dismissCompletionPrompt = () => {
+        if (user?.id) {
+            window.sessionStorage.setItem(`profile_completion_prompt_dismissed_${user.id}`, "1");
+        }
+        setShowCompleteProfilePrompt(false);
+    };
+
+    const openSettingsForCompletion = () => {
+        setShowCompleteProfilePrompt(false);
+        setActiveTab("settings");
+        setSettingsPage("main");
+    };
+
+    const handleSaveProfile = async (closeModal = false) => {
+        if (!user?.id) return;
+
+        const supabase = createClient();
+        setIsSavingProfile(true);
+        setProfileFeedback(null);
+
+        const payload = {
+            id: user.id,
+            full_name: profileFullName.trim() || metadataName || null,
+            phone: profilePhone.trim() || null,
+            email: profileEmail.trim() || authEmail || null,
+        };
+
+        const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
+
+        if (error) {
+            const isPhoneConflict = /duplicate|phone/i.test(error.message);
+            setProfileFeedback(isPhoneConflict ? "Phone number already exists. Use a different number." : error.message);
+            setIsSavingProfile(false);
+            return;
+        }
+
+        setProfileFullName(payload.full_name ?? "");
+        setProfilePhone(payload.phone ?? "");
+        setProfileEmail(payload.email ?? "");
+        setProfileFeedback("Profile updated successfully.");
+        setIsSavingProfile(false);
+
+        if (closeModal) {
+            setShowProfileModal(false);
+        }
+    };
 
     const filteredProducts = products.filter((p) => {
         const matchesCategory = activeCategory === "All" || p.category === activeCategory;
@@ -110,6 +302,54 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                         <Leaf className="w-4 h-4 text-emerald-400" strokeWidth={2} />
                         Added to your cart!
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showCompleteProfilePrompt && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/55 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 24, scale: 0.96 }}
+                            className="relative z-10 w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl"
+                        >
+                            <h3 className="text-lg font-bold text-slate-900">Complete your account</h3>
+                            <p className="mt-2 text-sm text-slate-600">
+                                Please add your account details and delivery address before placing orders.
+                            </p>
+                            <div className="mt-4 space-y-2 rounded-lg bg-slate-50 p-3">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-700">Account &amp; Security</span>
+                                    {hasAccountSecurityCompleted ? <Check className="h-4 w-4 text-emerald-600" /> : <span className="h-2.5 w-2.5 rounded-full bg-red-500" />}
+                                </div>
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-700">My Addresses</span>
+                                    {hasAddressCompleted ? <Check className="h-4 w-4 text-emerald-600" /> : <span className="h-2.5 w-2.5 rounded-full bg-red-500" />}
+                                </div>
+                            </div>
+                            <div className="mt-5 grid grid-cols-2 gap-2">
+                                <button
+                                    onClick={dismissCompletionPrompt}
+                                    className="rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                                >
+                                    Later
+                                </button>
+                                <button
+                                    onClick={openSettingsForCompletion}
+                                    className="rounded-lg bg-emerald-700 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
+                                >
+                                    Go to Settings
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
 
@@ -262,6 +502,7 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                             className="relative hidden lg:flex w-12 h-12 bg-white rounded-lg border border-emerald-100 items-center justify-center hover:bg-emerald-50 transition-colors"
                         >
                             <User className="w-6 h-6 text-slate-900" strokeWidth={1.5} />
+                            {needsProfileCompletion && <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-white bg-red-500" />}
                         </motion.button>
                     </div>
                 </div>
@@ -273,8 +514,8 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                         <div className="bg-slate-200 rounded-full w-12 h-12 flex items-center justify-center shrink-0 mb-3">
                             <User className="w-6 h-6 text-slate-500" />
                         </div>
-                        <h3 className="text-sm font-bold text-slate-900">Juan Dela Cruz</h3>
-                        <p className="text-xs text-slate-500 mt-0.5">+63 912 345 6789</p>
+                        <h3 className="text-sm font-bold text-slate-900">{displayName}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">{profilePhone.trim() || "Add phone number in Settings"}</p>
                     </div>
 
                     <div className="py-2">
@@ -283,7 +524,7 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                             { id: "orders", label: "Orders", icon: ReceiptText },
                             { id: "notifications", label: "Notifications", icon: Bell },
                             { id: "chat", label: "Support / Chat", icon: Headset },
-                            { id: "profile", label: "Account", icon: User },
+                            { id: "profile", label: "Account", icon: User, showDot: needsProfileCompletion },
                         ].map((item) => {
                             const isActive = activeTab === item.id || (item.id === "profile" && activeTab === "settings");
                             return (
@@ -300,6 +541,7 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                                 >
                                     <div className="relative">
                                         <item.icon className="w-4 h-4" />
+                                        {item.showDot && <span className="absolute -top-1.5 -right-1.5 h-2.5 w-2.5 rounded-full bg-red-500" />}
                                     </div>
                                     <span>{item.label}</span>
                                 </button>
@@ -638,21 +880,22 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                                 <User className="w-8 h-8 text-slate-500" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-slate-900">Juan Dela Cruz</h2>
-                                <p className="text-slate-500 text-sm mt-0.5">+63 912 345 6789</p>
+                                <h2 className="text-xl font-bold text-slate-900">{displayName}</h2>
+                                <p className="text-slate-500 text-sm mt-0.5">{profilePhone.trim() || "Add phone number in Settings"}</p>
                             </div>
                         </div>
 
                         <div className="bg-white shadow-sm w-full rounded-none md:rounded-lg overflow-hidden mb-2">
                             {[
                                 { icon: Star, label: "Rewards", action: () => { } },
-                                { icon: Settings, label: "Settings", action: () => setActiveTab("settings") },
+                                { icon: Settings, label: "Settings", action: () => setActiveTab("settings"), showDot: needsProfileCompletion },
                                 { icon: HelpCircle, label: "Help Centre", action: () => { } },
                             ].map((item, idx) => (
                                 <div key={idx} onClick={item.action} className="flex justify-between items-center p-4 py-4 md:py-5 border-b border-slate-100 last:border-0 active:bg-slate-50 hover:bg-slate-50 transition-colors cursor-pointer">
                                     <div className="flex items-center gap-4 text-slate-700 font-medium">
                                         <item.icon className="w-5 h-5 text-slate-600" />
                                         <span>{item.label}</span>
+                                        {item.showDot && <span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" />}
                                     </div>
                                     <ChevronRight className="w-5 h-5 text-slate-300" />
                                 </div>
@@ -687,14 +930,22 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                             </div>
 
                             <div className="pt-2 pb-4">
+                                {needsProfileCompletion && (
+                                    <div className="mx-4 mb-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3">
+                                        <p className="text-sm font-semibold text-red-700">Complete your account details</p>
+                                        <p className="mt-1 text-xs text-red-600">
+                                            Add your account info and delivery address to complete your profile setup.
+                                        </p>
+                                    </div>
+                                )}
 
                                 <div className="px-4 pt-4 pb-1.5">
                                     <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">My Account</p>
                                 </div>
                                 <div className="bg-white border-y border-slate-200">
                                     {[
-                                        { label: "Account & Security", sub: "Name, username, email, password", page: "account-security" as const },
-                                        { label: "My Addresses", sub: "Saved delivery locations", page: "addresses" as const },
+                                        { label: "Account & Security", sub: "Name, username, email, password", page: "account-security" as const, incomplete: !hasAccountSecurityCompleted },
+                                        { label: "My Addresses", sub: "Saved delivery locations", page: "addresses" as const, incomplete: !hasAddressCompleted },
                                         { label: "Payment Methods", sub: "GCash, Maya, Cash on Delivery", page: "payment-methods" as const },
                                     ].map((item, idx, arr) => (
                                         <div
@@ -706,7 +957,10 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                                                 <p className="text-sm font-semibold text-slate-800">{item.label}</p>
                                                 <p className="text-xs text-slate-400 mt-0.5">{item.sub}</p>
                                             </div>
-                                            <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+                                            <div className="flex items-center gap-2">
+                                                {item.incomplete && <span className="h-2.5 w-2.5 rounded-full bg-red-500" />}
+                                                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -777,14 +1031,14 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                                     <div className="px-4 pb-4 pt-2 space-y-3">
                                         <div>
                                             <label className="block text-xs font-semibold text-slate-500 mb-1">Full Name</label>
-                                            <input type="text" defaultValue="Juan Dela Cruz" placeholder="Enter your full name"
+                                            <input type="text" value={profileFullName} onChange={(event) => setProfileFullName(event.target.value)} placeholder="Enter your full name"
                                                 className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 px-3 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all" />
                                         </div>
                                         <div>
                                             <label className="block text-xs font-semibold text-slate-500 mb-1">Username / Display Name</label>
                                             <div className="relative">
                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm select-none">@</span>
-                                                <input type="text" defaultValue="juandelacruz" placeholder="username"
+                                                <input type="text" value={profileUsername} onChange={(event) => setProfileUsername(event.target.value)} placeholder="username"
                                                     className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 pl-7 pr-3 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all" />
                                             </div>
                                             <p className="text-[11px] text-slate-400 mt-1">This is how others see you.</p>
@@ -793,22 +1047,29 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                                             <label className="block text-xs font-semibold text-slate-500 mb-1">Phone Number</label>
                                             <div className="relative">
                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm select-none">ðŸ‡µðŸ‡­</span>
-                                                <input type="tel" defaultValue="+63 912 345 6789" placeholder="+63 9XX XXX XXXX"
+                                                <input type="tel" value={profilePhone} onChange={(event) => setProfilePhone(event.target.value)} placeholder="+63 9XX XXX XXXX"
                                                     className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 pl-9 pr-3 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all" />
                                             </div>
                                         </div>
                                         <div>
                                             <label className="block text-xs font-semibold text-slate-500 mb-1">Email Address</label>
-                                            <input type="email" defaultValue="juan@email.com" placeholder="you@email.com"
+                                            <input type="email" value={profileEmail} onChange={(event) => setProfileEmail(event.target.value)} placeholder="you@email.com"
                                                 className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2.5 px-3 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all" />
                                         </div>
                                     </div>
                                     <div className="h-px bg-slate-100 mx-4" />
                                     <div className="px-4 py-3">
                                         <motion.button whileTap={{ scale: 0.98 }}
-                                            className="w-full bg-emerald-700 text-white font-semibold rounded-lg py-3 hover:bg-emerald-800 transition-colors text-sm">
-                                            Save Changes
+                                            onClick={() => void handleSaveProfile()}
+                                            disabled={isSavingProfile}
+                                            className="w-full bg-emerald-700 text-white font-semibold rounded-lg py-3 hover:bg-emerald-800 transition-colors text-sm disabled:cursor-not-allowed disabled:opacity-70">
+                                            {isSavingProfile ? "Saving..." : "Save Changes"}
                                         </motion.button>
+                                        {profileFeedback && (
+                                            <p className={`mt-2 text-xs font-medium ${profileFeedback.includes("successfully") ? "text-emerald-700" : "text-red-600"}`}>
+                                                {profileFeedback}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 
@@ -922,7 +1183,7 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                                 <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
                                     {[
                                         { label: "Cash on Delivery", sub: "Pay when your order arrives", icon: Banknote, iconClass: "bg-slate-100 text-slate-600" },
-                                        { label: "GCash", sub: "Linked: +63 912 345 6789", icon: Smartphone, iconClass: "bg-blue-50 text-blue-600" },
+                                        { label: "GCash", sub: profilePhone.trim() ? `Linked: ${profilePhone.trim()}` : "Not linked", icon: Smartphone, iconClass: "bg-blue-50 text-blue-600" },
                                         { label: "Maya", sub: "Not linked", icon: CreditCard, iconClass: "bg-green-50 text-green-600" },
                                     ].map((method, idx, arr) => (
                                         <div key={method.label}
@@ -1116,7 +1377,7 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                         { id: "home" as DashboardTab, label: "Home", icon: Store },
                         { id: "orders" as DashboardTab, label: "Orders", icon: ReceiptText },
                         { id: "chat" as DashboardTab, label: "Support", icon: Headset },
-                        { id: "profile" as DashboardTab, label: "Account", icon: User },
+                        { id: "profile" as DashboardTab, label: "Account", icon: User, showDot: needsProfileCompletion },
                     ].map((tab) => {
                         const isActive = activeTab === tab.id || (tab.id === "profile" && activeTab === "settings");
                         return (
@@ -1136,6 +1397,7 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                                         }`}
                                     strokeWidth={isActive ? 2.5 : 1.8}
                                 />
+                                {tab.showDot && <span className="absolute right-[34%] top-2 h-2 w-2 rounded-full bg-red-500" />}
                                 <span className={`text-[11px] font-semibold transition-colors duration-200 ${isActive ? "text-emerald-700" : "text-slate-400"
                                     }`}>
                                     {tab.label}
@@ -1184,7 +1446,8 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
                                     <input
                                         type="text"
-                                        defaultValue="Juan Dela Cruz"
+                                        value={profileFullName}
+                                        onChange={(event) => setProfileFullName(event.target.value)}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all font-medium"
                                     />
                                 </div>
@@ -1192,7 +1455,8 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
                                     <input
                                         type="tel"
-                                        defaultValue="+63 912 345 6789"
+                                        value={profilePhone}
+                                        onChange={(event) => setProfilePhone(event.target.value)}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all font-medium"
                                     />
                                 </div>
@@ -1200,11 +1464,17 @@ export default function DashboardView({ user, cartCount, onOpenCart, onAddToCart
                                 <div className="pt-2 flex flex-col gap-3">
                                     <motion.button
                                         whileTap={{ scale: 0.98 }}
-                                        onClick={() => setShowProfileModal(false)}
-                                        className="w-full bg-emerald-700 text-white font-semibold rounded-md py-3 shadow-md shadow-emerald-700/20 hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2"
+                                        onClick={() => void handleSaveProfile(true)}
+                                        disabled={isSavingProfile}
+                                        className="w-full bg-emerald-700 text-white font-semibold rounded-md py-3 shadow-md shadow-emerald-700/20 hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
                                     >
-                                        Save Changes
+                                        {isSavingProfile ? "Saving..." : "Save Changes"}
                                     </motion.button>
+                                    {profileFeedback && (
+                                        <p className={`text-xs font-medium ${profileFeedback.includes("successfully") ? "text-emerald-700" : "text-red-600"}`}>
+                                            {profileFeedback}
+                                        </p>
+                                    )}
 
                                     <motion.button
                                         whileTap={{ scale: 0.98 }}

@@ -231,7 +231,7 @@ export default function LocationPicker({ onLocationSelect, initialLat, initialLn
                     {/* Target Reticle Shadow */}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-black/15 rounded-lg blur-[2px] pointer-events-none transition-opacity duration-200" style={{ opacity: isMoving ? 0.3 : 0.8 }} />
 
-                    <div className="absolute top-4 left-4 right-4 z-10 flex flex-col gap-2">
+                    <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
                         <button
                             onClick={locateCurrentPosition}
                             disabled={isLocating}
@@ -241,7 +241,7 @@ export default function LocationPicker({ onLocationSelect, initialLat, initialLn
                             {isLocating ? "Locating..." : "Use My Current Location"}
                         </button>
                         {locationError && (
-                            <p className="max-w-xs rounded-lg bg-red-50/95 px-3 py-2 text-[11px] font-medium text-red-600 shadow-sm">
+                            <p className="max-w-[220px] rounded-lg bg-red-50/95 px-3 py-2 text-[11px] font-medium leading-tight text-red-600 shadow-sm">
                                 {locationError}
                             </p>
                         )}

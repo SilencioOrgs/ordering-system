@@ -30,6 +30,12 @@ export default function CartDrawer({
     onPlaceOrder,
 }: CartDrawerProps) {
     const { user } = useAuth();
+    const metadataName =
+        typeof user?.user_metadata?.full_name === "string"
+            ? user.user_metadata.full_name
+            : typeof user?.user_metadata?.name === "string"
+                ? user.user_metadata.name
+                : "";
     const [selectedPayment, setSelectedPayment] = useState<string>("cod");
     const [walletProvider, setWalletProvider] = useState<"GCash" | "Maya">("GCash");
     const [showSuccess, setShowSuccess] = useState(false);
@@ -85,7 +91,7 @@ export default function CartDrawer({
                 deliveryLng: deliveryMode === "delivery" ? deliveryLng : null,
                 paymentMethod: method,
                 scheduledDate: null,
-                customerName: profile?.full_name ?? user.email ?? "Customer",
+                customerName: profile?.full_name?.trim() || metadataName || user.email || "Customer",
                 customerPhone: profile?.phone ?? "",
             });
 
