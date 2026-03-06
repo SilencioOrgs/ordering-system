@@ -9,11 +9,23 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
 import type { Product } from "@/lib/data";
 
+type CheckoutCustomQuote = {
+  id: string;
+  title: string;
+  itemDescription: string;
+  quantity: number;
+  unitPrice: number;
+  quotedTotal: number;
+  deliveryDate: string | null;
+  notes: string | null;
+};
+
 export default function Home() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { cartItems, cartCount, addToCart, updateQuantity, clearCart } = useCart(user);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [shouldRedirectToOrders, setShouldRedirectToOrders] = useState(false);
+  const [customQuoteForCheckout, setCustomQuoteForCheckout] = useState<CheckoutCustomQuote | null>(null);
 
   const handleAddToCart = (product: Product) => {
     addToCart(product);
@@ -21,6 +33,7 @@ export default function Home() {
 
   const handlePlaceOrder = () => {
     clearCart();
+    setCustomQuoteForCheckout(null);
     setIsCartOpen(false);
     setShouldRedirectToOrders(true);
   };
@@ -46,6 +59,10 @@ export default function Home() {
             cartItems={cartItems}
             onOpenCart={() => setIsCartOpen(true)}
             onAddToCart={handleAddToCart}
+            onCheckoutCustomQuote={(quote) => {
+              setCustomQuoteForCheckout(quote);
+              setIsCartOpen(true);
+            }}
             onLogout={signOut}
             shouldRedirectToOrders={shouldRedirectToOrders}
             onRedirectHandled={() => setShouldRedirectToOrders(false)}
@@ -64,6 +81,8 @@ export default function Home() {
           const cartItem = cartItems.find((i) => i.product_id === productId);
           if (cartItem) updateQuantity(cartItem.id, delta);
         }}
+        customQuoteCheckout={customQuoteForCheckout}
+        onClearCustomQuote={() => setCustomQuoteForCheckout(null)}
         onPlaceOrder={handlePlaceOrder}
       />
     </div>

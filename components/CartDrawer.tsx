@@ -17,11 +17,24 @@ export interface CartItem extends Product {
     quantity: number;
 }
 
+interface CheckoutCustomQuote {
+    id: string;
+    title: string;
+    itemDescription: string;
+    quantity: number;
+    unitPrice: number;
+    quotedTotal: number;
+    deliveryDate: string | null;
+    notes: string | null;
+}
+
 interface CartDrawerProps {
     isOpen: boolean;
     onClose: () => void;
     cartItems: CartItem[];
     onUpdateQuantity: (id: string, delta: number) => void;
+    customQuoteCheckout?: CheckoutCustomQuote | null;
+    onClearCustomQuote?: () => void;
     onPlaceOrder: () => void;
 }
 
@@ -30,6 +43,8 @@ export default function CartDrawer({
     onClose,
     cartItems,
     onUpdateQuantity,
+    customQuoteCheckout = null,
+    onClearCustomQuote,
     onPlaceOrder,
 }: CartDrawerProps) {
     const { user } = useAuth();
@@ -55,7 +70,9 @@ export default function CartDrawer({
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
     const [orderError, setOrderError] = useState<string | null>(null);
 
-    const totalAmount = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    const customQuoteTotal = customQuoteCheckout ? customQuoteCheckout.quotedTotal : 0;
+    const hasCheckoutItems = cartItems.length > 0 || Boolean(customQuoteCheckout);
+    const totalAmount = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0) + customQuoteTotal;
     const shippingFee = deliveryMode === "delivery" ? 50 : 0;
     const totalPayment = totalAmount + shippingFee;
 
@@ -122,7 +139,7 @@ export default function CartDrawer({
 
     const submitOrder = async (method: "COD" | "GCash" | "Maya") => {
         if (!user) return;
-        if (cartItems.length === 0) return;
+        if (!hasCheckoutItems) return;
         if (deliveryMode === "delivery" && (!address || address === DEFAULT_CART_ADDRESS)) {
             setOrderError("Please select or pin your delivery address first.");
             return;
@@ -141,6 +158,7 @@ export default function CartDrawer({
                     price: item.price,
                     name: item.name,
                 })),
+                customQuoteId: customQuoteCheckout?.id ?? null,
                 deliveryMode: deliveryMode === "delivery" ? "Delivery" : "Pick-up",
                 deliveryAddress: deliveryMode === "delivery" ? address : null,
                 deliveryLat: deliveryMode === "delivery" ? deliveryLat : null,
@@ -177,6 +195,7 @@ export default function CartDrawer({
         setShowSuccess(true);
         setTimeout(() => {
             setShowSuccess(false);
+            onClearCustomQuote?.();
             onPlaceOrder();
         }, 3000);
     };
@@ -221,7 +240,7 @@ export default function CartDrawer({
                         {/* Scrollable Content */}
                         <div className="flex-1 overflow-y-auto bg-slate-50/50 p-6 space-y-8">
                             {/* Cart Items */}
-                            {cartItems.length === 0 ? (
+                            {!hasCheckoutItems ? (
                                 <div className="text-center py-12">
                                     <div className="w-20 h-20 bg-emerald-50 rounded-lg flex items-center justify-center mx-auto mb-4">
                                         <ShoppingBagIcon className="w-10 h-10 text-emerald-200" strokeWidth={1.5} />
@@ -231,6 +250,30 @@ export default function CartDrawer({
                                 </div>
                             ) : (
                                 <div className="space-y-4">
+                                    {customQuoteCheckout && (
+                                        <div className="rounded-md border border-emerald-100 bg-emerald-50/70 p-4 shadow-sm">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Custom Quotation</p>
+                                                    <h4 className="mt-1 text-sm font-bold text-slate-900">{customQuoteCheckout.title}</h4>
+                                                    <p className="mt-1 text-sm text-slate-700">{customQuoteCheckout.itemDescription}</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => onClearCustomQuote?.()}
+                                                    className="rounded-md border border-emerald-200 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                            <div className="mt-2 grid gap-1 text-xs text-slate-600">
+                                                <p>Qty: <span className="font-semibold text-slate-900">{customQuoteCheckout.quantity}</span></p>
+                                                <p>Unit: <span className="font-semibold text-slate-900">PHP {customQuoteCheckout.unitPrice.toFixed(2)}</span></p>
+                                                <p>Total: <span className="font-bold text-emerald-700">PHP {customQuoteCheckout.quotedTotal.toFixed(2)}</span></p>
+                                                {customQuoteCheckout.deliveryDate && <p>Target date: <span className="font-semibold text-slate-900">{customQuoteCheckout.deliveryDate}</span></p>}
+                                            </div>
+                                            {customQuoteCheckout.notes && <p className="mt-2 rounded-md bg-white p-2 text-xs text-slate-600">{customQuoteCheckout.notes}</p>}
+                                        </div>
+                                    )}
                                     {cartItems.map((item) => (
                                         <div key={item.id} className="flex gap-4 bg-white p-3 rounded-md border border-slate-100 shadow-sm">
                                             <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-50">
@@ -264,7 +307,7 @@ export default function CartDrawer({
                             )}
 
                             {/* Checkout Form */}
-                            {cartItems.length > 0 && (
+                            {hasCheckoutItems && (
                                 <div className="space-y-6 bg-white p-6 rounded-md border border-slate-100 shadow-sm">
                                     <h3 className="text-lg font-bold tracking-tight text-slate-900">Order Details</h3>
 
@@ -373,22 +416,28 @@ export default function CartDrawer({
                         </div>
 
                         {/* Footer with sticky CTA */}
-                        {cartItems.length > 0 && (
+                        {hasCheckoutItems && (
                             <div className="p-6 bg-white border-t border-slate-100 shadow-[0_-8px_30px_rgb(0,0,0,0.04)] shrink-0 z-10">
                                 <div className="space-y-2 mb-4">
                                     <div className="flex justify-between items-center text-sm text-slate-500">
-                                        <span>Merchandise Subtotal</span>
-                                        <span>PHP {totalAmount}</span>
+                                        <span>Products Subtotal</span>
+                                        <span>PHP {(totalAmount - customQuoteTotal).toFixed(2)}</span>
                                     </div>
+                                    {customQuoteCheckout && (
+                                        <div className="flex justify-between items-center text-sm text-slate-500">
+                                            <span>Custom Quote</span>
+                                            <span>PHP {customQuoteTotal.toFixed(2)}</span>
+                                        </div>
+                                    )}
                                     {deliveryMode === "delivery" && (
                                         <div className="flex justify-between items-center text-sm text-slate-500">
                                             <span>Shipping Fee</span>
-                                            <span>PHP {shippingFee}</span>
+                                            <span>PHP {shippingFee.toFixed(2)}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between items-center font-bold text-lg text-slate-900 border-t border-slate-100 pt-3 mt-2">
                                         <span>Total Payment</span>
-                                        <span className="text-emerald-700">PHP {totalPayment}</span>
+                                        <span className="text-emerald-700">PHP {totalPayment.toFixed(2)}</span>
                                     </div>
                                 </div>
                                 {orderError && (
@@ -399,10 +448,10 @@ export default function CartDrawer({
                                 <motion.button
                                     whileTap={{ scale: 0.96 }}
                                     onClick={() => void handlePlaceOrder()}
-                                    disabled={isPlacingOrder || cartItems.length === 0}
+                                    disabled={isPlacingOrder || !hasCheckoutItems}
                                     className="w-full bg-emerald-700 text-white font-semibold rounded-lg py-4 shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2 text-lg disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                    {isPlacingOrder ? "Placing Order..." : `Place Order - PHP ${totalPayment}`}
+                                    {isPlacingOrder ? "Placing Order..." : `Place Order - PHP ${totalPayment.toFixed(2)}`}
                                 </motion.button>
                             </div>
                         )}

@@ -1,4 +1,4 @@
-import { createServerClient } from "@supabase/ssr";
+﻿import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
@@ -11,6 +11,7 @@ type PlaceOrderItemInput = {
 
 type PlaceOrderPayload = {
   cartItems: PlaceOrderItemInput[];
+  customQuoteId?: string | null;
   deliveryMode: "Delivery" | "Pick-up";
   deliveryAddress?: string | null;
   deliveryLat?: number | null;
@@ -19,6 +20,24 @@ type PlaceOrderPayload = {
   scheduledDate?: string | null;
   customerName: string;
   customerPhone?: string;
+};
+
+type QuoteRow = {
+  id: string;
+  title: string;
+  item_description: string;
+  quantity: number;
+  unit_price: number | string;
+  quoted_total: number | string;
+  status: "Sent" | "Accepted" | "Declined" | "Superseded";
+};
+
+type OrderItemPayload = {
+  order_id: string;
+  product_id: string | null;
+  name: string;
+  quantity: number;
+  price: number;
 };
 
 export async function POST(req: NextRequest) {
@@ -52,10 +71,11 @@ export async function POST(req: NextRequest) {
   }
 
   const cartItems = Array.isArray(body.cartItems) ? body.cartItems : [];
+  const customQuoteId = body.customQuoteId?.trim() || null;
   const deliveryMode = body.deliveryMode;
   const paymentMethod = body.paymentMethod;
 
-  if (cartItems.length === 0) {
+  if (cartItems.length === 0 && !customQuoteId) {
     return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
   }
 
@@ -67,52 +87,96 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
   }
 
-  const productIds = [...new Set(cartItems.map((item) => item.product_id).filter(Boolean))];
-  if (productIds.length === 0) {
-    return NextResponse.json({ error: "No valid products in cart" }, { status: 400 });
-  }
+  const orderItemsForInsert: Omit<OrderItemPayload, "order_id">[] = [];
 
-  const { data: products, error: productsError } = await supabase
-    .from("products")
-    .select("id, name, price")
-    .in("id", productIds);
+  if (cartItems.length > 0) {
+    const productIds = [...new Set(cartItems.map((item) => item.product_id).filter(Boolean))];
+    if (productIds.length === 0) {
+      return NextResponse.json({ error: "No valid products in cart" }, { status: 400 });
+    }
 
-  if (productsError) {
-    return NextResponse.json({ error: productsError.message }, { status: 500 });
-  }
+    const { data: products, error: productsError } = await supabase
+      .from("products")
+      .select("id, name, price")
+      .in("id", productIds);
 
-  const productById = new Map(
-    (products ?? []).map((product) => [
-      product.id,
-      {
-        name: product.name,
-        price: Number(product.price ?? 0),
-      },
-    ])
-  );
+    if (productsError) {
+      return NextResponse.json({ error: productsError.message }, { status: 500 });
+    }
 
-  const sanitizedItems = cartItems
-    .map((item) => {
-      const quantity = Number(item.quantity);
-      const product = productById.get(item.product_id);
-      if (!product || !Number.isFinite(quantity) || quantity <= 0) {
-        return null;
-      }
+    const productById = new Map(
+      (products ?? []).map((product) => [
+        product.id,
+        {
+          name: product.name,
+          price: Number(product.price ?? 0),
+        },
+      ])
+    );
 
-      return {
+    const sanitizedItems = cartItems
+      .map((item) => {
+        const quantity = Number(item.quantity);
+        const product = productById.get(item.product_id);
+        if (!product || !Number.isFinite(quantity) || quantity <= 0) {
+          return null;
+        }
+
+        return {
+          product_id: item.product_id,
+          quantity: Math.floor(quantity),
+          name: product.name,
+          price: product.price,
+        };
+      })
+      .filter((item): item is { product_id: string; quantity: number; name: string; price: number } => item !== null);
+
+    for (const item of sanitizedItems) {
+      orderItemsForInsert.push({
         product_id: item.product_id,
-        quantity: Math.floor(quantity),
-        name: product.name,
-        price: product.price,
-      };
-    })
-    .filter((item): item is { product_id: string; quantity: number; name: string; price: number } => item !== null);
+        quantity: item.quantity,
+        name: item.name,
+        price: item.price,
+      });
+    }
+  }
 
-  if (sanitizedItems.length === 0) {
+  if (customQuoteId) {
+    const { data: quote, error: quoteError } = await supabase
+      .from("custom_order_quotes")
+      .select("id, title, item_description, quantity, unit_price, quoted_total, status")
+      .eq("id", customQuoteId)
+      .single();
+
+    if (quoteError || !quote) {
+      return NextResponse.json({ error: quoteError?.message ?? "Quotation not found" }, { status: 400 });
+    }
+
+    const typedQuote = quote as QuoteRow;
+    if (!["Sent", "Accepted"].includes(typedQuote.status)) {
+      return NextResponse.json({ error: "Quotation is no longer valid for checkout" }, { status: 400 });
+    }
+
+    const quantity = Math.max(1, Math.floor(Number(typedQuote.quantity ?? 1)));
+    const unitPrice = Number(typedQuote.unit_price ?? 0);
+
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+      return NextResponse.json({ error: "Invalid quotation amount" }, { status: 400 });
+    }
+
+    orderItemsForInsert.push({
+      product_id: null,
+      quantity,
+      name: `${typedQuote.title} - ${typedQuote.item_description}`,
+      price: unitPrice,
+    });
+  }
+
+  if (orderItemsForInsert.length === 0) {
     return NextResponse.json({ error: "No valid order items" }, { status: 400 });
   }
 
-  const subtotal = sanitizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = orderItemsForInsert.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryFee = deliveryMode === "Delivery" ? 50 : 0;
   const isWalletPayment = paymentMethod === "GCash" || paymentMethod === "Maya";
   // Match current schema enum values: Pending | Awaiting Verification | Verified | Rejected
@@ -151,7 +215,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: orderError?.message ?? "Failed to create order" }, { status: 500 });
   }
 
-  const orderItemsPayload = sanitizedItems.map((item) => ({
+  const orderItemsPayload: OrderItemPayload[] = orderItemsForInsert.map((item) => ({
     order_id: order.id,
     product_id: item.product_id,
     name: item.name,
@@ -181,3 +245,4 @@ export async function POST(req: NextRequest) {
     orderNumber: order.order_number,
   });
 }
+

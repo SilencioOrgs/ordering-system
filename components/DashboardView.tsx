@@ -10,6 +10,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { useOrders } from "@/hooks/useOrders";
 import { useOrderMessages } from "@/hooks/useOrderMessages";
 import { useSupportChat } from "@/hooks/useSupportChat";
+import { useCustomOrderChat } from "@/hooks/useCustomOrderChat";
 import { categories, Product } from "@/lib/data";
 import LocationPicker from "./LocationPicker";
 import ProductModal from "./ProductModal";
@@ -35,6 +36,16 @@ interface DashboardViewProps {
     }>;
     onOpenCart: () => void;
     onAddToCart: (product: Product) => void;
+    onCheckoutCustomQuote: (quote: {
+        id: string;
+        title: string;
+        itemDescription: string;
+        quantity: number;
+        unitPrice: number;
+        quotedTotal: number;
+        deliveryDate: string | null;
+        notes: string | null;
+    }) => void;
     onLogout: () => void;
     shouldRedirectToOrders?: boolean;
     onRedirectHandled?: () => void;
@@ -70,11 +81,30 @@ function getUserMetadataString(user: SupabaseUser | null, keys: string[]): strin
     return "";
 }
 
-export default function DashboardView({ user, cartCount, cartItems, onOpenCart, onAddToCart, onLogout, shouldRedirectToOrders, onRedirectHandled }: DashboardViewProps) {
+function formatPeso(value: number) {
+    return new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(value);
+}
+
+export default function DashboardView({ user, cartCount, cartItems, onOpenCart, onAddToCart, onCheckoutCustomQuote, onLogout, shouldRedirectToOrders, onRedirectHandled }: DashboardViewProps) {
     const { products, loading: productsLoading } = useProducts();
     const { orders, loading: ordersLoading } = useOrders(user);
     const { messages, unreadCount: messagesUnread, markRead, markAllRead } = useOrderMessages(user);
     const { messages: supportMessages, loading: supportLoading, sending: supportSending, sendMessage: sendSupportMessage } = useSupportChat(user);
+    const {
+        threadStatus: customOrderThreadStatus,
+        messages: customOrderMessages,
+        activeQuote: customOrderActiveQuote,
+        loading: customOrderLoading,
+        sending: customOrderSending,
+        error: customOrderError,
+        sendMessage: sendCustomOrderMessage,
+        acceptQuote: acceptCustomOrderQuote,
+    } = useCustomOrderChat(user);
     const metadataName = getUserMetadataString(user, ["full_name", "name"]);
     const authEmail = user?.email ?? getUserMetadataString(user, ["email"]);
     const [activeCategory, setActiveCategory] = useState("All");
@@ -361,6 +391,32 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
         if (!trimmed) return;
         await sendSupportMessage(trimmed);
         setChatMessage("");
+    };
+
+    const handleSendCustomOrderMessage = async () => {
+        const trimmed = customOrderMessage.trim();
+        if (!trimmed) return;
+        await sendCustomOrderMessage(trimmed);
+        setCustomOrderMessage("");
+    };
+
+    const handleProceedCustomQuote = async () => {
+        if (!customOrderActiveQuote) return;
+
+        if (customOrderActiveQuote.status === "Sent") {
+            await acceptCustomOrderQuote(customOrderActiveQuote.id);
+        }
+
+        onCheckoutCustomQuote({
+            id: customOrderActiveQuote.id,
+            title: customOrderActiveQuote.title,
+            itemDescription: customOrderActiveQuote.itemDescription,
+            quantity: customOrderActiveQuote.quantity,
+            unitPrice: customOrderActiveQuote.unitPrice,
+            quotedTotal: customOrderActiveQuote.quotedTotal,
+            deliveryDate: customOrderActiveQuote.deliveryDate,
+            notes: customOrderActiveQuote.notes,
+        });
     };
 
     return (
@@ -1463,8 +1519,42 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                                 Let&apos;s discuss your special request!
                             </div>
                         </div>
+                        {customOrderThreadStatus && (
+                            <span className="rounded-full bg-white/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+                                {customOrderThreadStatus}
+                            </span>
+                        )}
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+                        {customOrderActiveQuote && (
+                            <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
+                                <div className="mb-2 flex items-center justify-between gap-2">
+                                    <p className="text-sm font-bold text-slate-900">{customOrderActiveQuote.title}</p>
+                                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${customOrderActiveQuote.status === "Accepted"
+                                            ? "bg-emerald-100 text-emerald-700"
+                                            : "bg-amber-100 text-amber-700"
+                                        }`}>
+                                        {customOrderActiveQuote.status}
+                                    </span>
+                                </div>
+                                <p className="text-sm text-slate-700">{customOrderActiveQuote.itemDescription}</p>
+                                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
+                                    <p>Qty: <span className="font-semibold text-slate-900">{customOrderActiveQuote.quantity}</span></p>
+                                    <p>Unit: <span className="font-semibold text-slate-900">{formatPeso(customOrderActiveQuote.unitPrice)}</span></p>
+                                    <p className="col-span-2">Total: <span className="font-bold text-emerald-700">{formatPeso(customOrderActiveQuote.quotedTotal)}</span></p>
+                                    {customOrderActiveQuote.deliveryDate && <p className="col-span-2">Target date: <span className="font-semibold text-slate-900">{customOrderActiveQuote.deliveryDate}</span></p>}
+                                </div>
+                                {customOrderActiveQuote.notes && (
+                                    <p className="mt-2 rounded-lg bg-slate-50 p-2 text-xs text-slate-600">{customOrderActiveQuote.notes}</p>
+                                )}
+                                <button
+                                    onClick={() => void handleProceedCustomQuote()}
+                                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
+                                >
+                                    {customOrderActiveQuote.status === "Accepted" ? "Proceed to Checkout" : "Accept & Proceed to Checkout"}
+                                </button>
+                            </div>
+                        )}
                         <div className="flex justify-start">
                             <div className="max-w-[85%] rounded-lg p-3 shadow-sm bg-white border border-slate-100 text-slate-800 rounded-tl-sm">
                                 <p className="text-sm font-semibold mb-2">Welcome to Custom Orders!</p>
@@ -1472,7 +1562,25 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                                 <span className="text-[10px] block mt-2 text-slate-400">Just now</span>
                             </div>
                         </div>
-                        {customOrderMessage.trim().length > 0 && false}
+                        {customOrderLoading ? (
+                            <div className="text-center text-sm font-medium text-slate-400">Loading conversation...</div>
+                        ) : customOrderMessages.length === 0 ? (
+                            <div className="text-center text-sm font-medium text-slate-400">No custom-order messages yet.</div>
+                        ) : (
+                            customOrderMessages.map((message) => (
+                                <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                                    <div className={`max-w-[85%] rounded-lg p-3 shadow-sm ${message.role === "user" ? "bg-emerald-600 text-white rounded-tr-sm" : "bg-white border border-slate-100 text-slate-800 rounded-tl-sm"}`}>
+                                        <p className="text-sm">{message.text}</p>
+                                        <span className={`text-[10px] block mt-1 ${message.role === "user" ? "text-emerald-200 text-right" : "text-slate-400"}`}>{message.time}</span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                        {customOrderError && (
+                            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-600">
+                                {customOrderError}
+                            </div>
+                        )}
                     </div>
                     <div className="p-4 border-t border-slate-100 bg-white flex flex-col gap-3 sticky bottom-[calc(env(safe-area-inset-bottom)+50px)] md:bottom-0">
                         <div className="flex items-center gap-2">
@@ -1481,12 +1589,18 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                                 placeholder="Describe your custom order..."
                                 value={customOrderMessage}
                                 onChange={(e) => setCustomOrderMessage(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && customOrderMessage.trim()) {
+                                        void handleSendCustomOrderMessage();
+                                    }
+                                }}
                                 className="flex-1 bg-slate-100 border-transparent rounded-md px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:bg-white transition-all placeholder:text-slate-400"
                             />
                             <motion.button
                                 whileTap={{ scale: 0.9 }}
-                                onClick={() => { if (customOrderMessage.trim()) setCustomOrderMessage(""); }}
-                                className="w-12 h-12 bg-emerald-800 rounded-xl flex items-center justify-center shrink-0 hover:bg-emerald-900 transition-colors shadow-sm"
+                                onClick={() => void handleSendCustomOrderMessage()}
+                                disabled={!customOrderMessage.trim() || customOrderSending}
+                                className="w-12 h-12 bg-emerald-800 rounded-xl flex items-center justify-center shrink-0 hover:bg-emerald-900 transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 <Send className="w-5 h-5 text-white ml-0.5" strokeWidth={1.5} />
                             </motion.button>

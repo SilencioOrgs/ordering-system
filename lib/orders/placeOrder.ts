@@ -7,6 +7,7 @@ export type PlaceOrderCartItem = {
 
 export type PlaceOrderPayload = {
   cartItems: PlaceOrderCartItem[];
+  customQuoteId?: string | null;
   deliveryMode: "Delivery" | "Pick-up";
   deliveryAddress: string | null;
   deliveryLat: number | null;
