@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProducts } from "@/hooks/useProducts";
 import { useOrders } from "@/hooks/useOrders";
 import { useOrderMessages } from "@/hooks/useOrderMessages";
+import { useSupportChat } from "@/hooks/useSupportChat";
 import { categories, Product } from "@/lib/data";
 import LocationPicker from "./LocationPicker";
 import ProductModal from "./ProductModal";
@@ -19,7 +20,6 @@ const promoSlides = [
     "/images/591396000_1300306605449851_5261874470759623080_n.jpg"
 ];
 
-const chatMessages: Array<{ id: number; sender: "store" | "user"; text: string; time: string }> = [];
 const DEFAULT_SAVED_PLACE = "Pin a location to save your place.";
 const SAVED_PLACE_DATA_KEY_PREFIX = "saved_place_data_";
 
@@ -74,6 +74,7 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
     const { products, loading: productsLoading } = useProducts();
     const { orders, loading: ordersLoading } = useOrders(user);
     const { messages, unreadCount: messagesUnread, markRead, markAllRead } = useOrderMessages(user);
+    const { messages: supportMessages, loading: supportLoading, sending: supportSending, sendMessage: sendSupportMessage } = useSupportChat(user);
     const metadataName = getUserMetadataString(user, ["full_name", "name"]);
     const authEmail = user?.email ?? getUserMetadataString(user, ["email"]);
     const [activeCategory, setActiveCategory] = useState("All");
@@ -99,6 +100,7 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [showNotifications, setShowNotifications] = useState(false);
     const [chatMessage, setChatMessage] = useState("");
+    const [customOrderMessage, setCustomOrderMessage] = useState("");
     const [orderAnimKey, setOrderAnimKey] = useState(0);
     const [lastAddedProductId, setLastAddedProductId] = useState<string | null>(null);
     const hasLoadedSavedPlaceRef = useRef(false);
@@ -352,6 +354,13 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
     const openCartFromToast = () => {
         setShowToast(false);
         onOpenCart();
+    };
+
+    const handleSendSupportMessage = async () => {
+        const trimmed = chatMessage.trim();
+        if (!trimmed) return;
+        await sendSupportMessage(trimmed);
+        setChatMessage("");
     };
 
     return (
@@ -1395,14 +1404,20 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-                        {chatMessages.map(msg => (
-                            <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-                                <div className={`max-w-[85%] rounded-lg p-3 shadow-sm ${msg.sender === "user" ? "bg-emerald-600 text-white rounded-tr-sm" : "bg-white border border-slate-100 text-slate-800 rounded-tl-sm"}`}>
-                                    <p className="text-sm">{msg.text}</p>
-                                    <span className={`text-[10px] block mt-1 ${msg.sender === "user" ? "text-emerald-200 text-right" : "text-slate-400"}`}>{msg.time}</span>
+                        {supportLoading ? (
+                            <div className="text-center text-sm font-medium text-slate-400">Loading messages...</div>
+                        ) : supportMessages.length === 0 ? (
+                            <div className="text-center text-sm font-medium text-slate-400">No messages yet. Start the conversation.</div>
+                        ) : (
+                            supportMessages.map((message) => (
+                                <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                                    <div className={`max-w-[85%] rounded-lg p-3 shadow-sm ${message.role === "user" ? "bg-emerald-600 text-white rounded-tr-sm" : "bg-white border border-slate-100 text-slate-800 rounded-tl-sm"}`}>
+                                        <p className="text-sm">{message.text}</p>
+                                        <span className={`text-[10px] block mt-1 ${message.role === "user" ? "text-emerald-200 text-right" : "text-slate-400"}`}>{message.time}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                     <div className="p-4 border-t border-slate-100 bg-white flex items-center gap-2 sticky bottom-[calc(env(safe-area-inset-bottom)+50px)] sm:bottom-0">
                         <input
@@ -1412,15 +1427,16 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                             onChange={(e) => setChatMessage(e.target.value)}
                             onKeyDown={(e) => {
                                 if (e.key === "Enter" && chatMessage.trim()) {
-                                    setChatMessage("");
+                                    void handleSendSupportMessage();
                                 }
                             }}
                             className="flex-1 bg-slate-100 border-transparent rounded-lg px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:bg-white transition-all placeholder:text-slate-400"
                         />
                         <motion.button
                             whileTap={{ scale: 0.9 }}
-                            onClick={() => { if (chatMessage.trim()) setChatMessage(""); }}
-                            className="w-11 h-11 bg-emerald-700 rounded-lg flex items-center justify-center shrink-0 hover:bg-emerald-800 transition-colors shadow-sm shadow-emerald-700/20"
+                            onClick={() => void handleSendSupportMessage()}
+                            disabled={!chatMessage.trim() || supportSending}
+                            className="w-11 h-11 bg-emerald-700 rounded-lg flex items-center justify-center shrink-0 hover:bg-emerald-800 transition-colors shadow-sm shadow-emerald-700/20 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <Send className="w-4 h-4 text-white ml-0.5" strokeWidth={2} />
                         </motion.button>
@@ -1456,21 +1472,20 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                                 <span className="text-[10px] block mt-2 text-slate-400">Just now</span>
                             </div>
                         </div>
-                        {/* We reuse chatMessages or chatMessage state here for a simple implementation */}
-                        {chatMessage.trim().length > 0 && false /* Hiding until sent, actually let's just use a separate state or dummy UI */}
+                        {customOrderMessage.trim().length > 0 && false}
                     </div>
                     <div className="p-4 border-t border-slate-100 bg-white flex flex-col gap-3 sticky bottom-[calc(env(safe-area-inset-bottom)+50px)] md:bottom-0">
                         <div className="flex items-center gap-2">
                             <input
                                 type="text"
                                 placeholder="Describe your custom order..."
-                                value={chatMessage}
-                                onChange={(e) => setChatMessage(e.target.value)}
+                                value={customOrderMessage}
+                                onChange={(e) => setCustomOrderMessage(e.target.value)}
                                 className="flex-1 bg-slate-100 border-transparent rounded-md px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:bg-white transition-all placeholder:text-slate-400"
                             />
                             <motion.button
                                 whileTap={{ scale: 0.9 }}
-                                onClick={() => { if (chatMessage.trim()) setChatMessage(""); }}
+                                onClick={() => { if (customOrderMessage.trim()) setCustomOrderMessage(""); }}
                                 className="w-12 h-12 bg-emerald-800 rounded-xl flex items-center justify-center shrink-0 hover:bg-emerald-900 transition-colors shadow-sm"
                             >
                                 <Send className="w-5 h-5 text-white ml-0.5" strokeWidth={1.5} />
