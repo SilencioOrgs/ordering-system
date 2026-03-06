@@ -103,6 +103,7 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
         sending: customOrderSending,
         error: customOrderError,
         sendMessage: sendCustomOrderMessage,
+        submitQuoteDetails: submitCustomQuoteDetails,
         acceptQuote: acceptCustomOrderQuote,
     } = useCustomOrderChat(user);
     const metadataName = getUserMetadataString(user, ["full_name", "name"]);
@@ -131,6 +132,11 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
     const [showNotifications, setShowNotifications] = useState(false);
     const [chatMessage, setChatMessage] = useState("");
     const [customOrderMessage, setCustomOrderMessage] = useState("");
+    const [customQuoteDescription, setCustomQuoteDescription] = useState("");
+    const [customQuoteQuantity, setCustomQuoteQuantity] = useState("1");
+    const [customQuoteDeliveryDate, setCustomQuoteDeliveryDate] = useState("");
+    const [customQuoteNotes, setCustomQuoteNotes] = useState("");
+    const [submittingCustomQuote, setSubmittingCustomQuote] = useState(false);
     const [orderAnimKey, setOrderAnimKey] = useState(0);
     const [lastAddedProductId, setLastAddedProductId] = useState<string | null>(null);
     const hasLoadedSavedPlaceRef = useRef(false);
@@ -400,8 +406,40 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
         setCustomOrderMessage("");
     };
 
+    useEffect(() => {
+        if (!customOrderActiveQuote) return;
+        setCustomQuoteDescription(customOrderActiveQuote.itemDescription || "");
+        setCustomQuoteQuantity(String(Math.max(1, customOrderActiveQuote.quantity || 1)));
+        setCustomQuoteDeliveryDate(customOrderActiveQuote.deliveryDate ?? "");
+        setCustomQuoteNotes(customOrderActiveQuote.notes ?? "");
+    }, [customOrderActiveQuote]);
+
+    const handleSubmitCustomerQuoteDetails = async () => {
+        if (!customOrderActiveQuote) return;
+
+        const itemDescription = customQuoteDescription.trim();
+        const quantity = Number(customQuoteQuantity);
+        if (!itemDescription || !Number.isFinite(quantity) || quantity < 1) {
+            return;
+        }
+
+        setSubmittingCustomQuote(true);
+        try {
+            await submitCustomQuoteDetails(customOrderActiveQuote.id, {
+                title: customOrderActiveQuote.title,
+                itemDescription,
+                quantity: Math.floor(quantity),
+                deliveryDate: customQuoteDeliveryDate || null,
+                notes: customQuoteNotes || null,
+            });
+        } finally {
+            setSubmittingCustomQuote(false);
+        }
+    };
+
     const handleProceedCustomQuote = async () => {
         if (!customOrderActiveQuote) return;
+        if (customOrderActiveQuote.quotePhase !== "priced_by_admin") return;
 
         if (customOrderActiveQuote.status === "Sent") {
             await acceptCustomOrderQuote(customOrderActiveQuote.id);
@@ -1527,32 +1565,82 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
                         {customOrderActiveQuote && (
-                            <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
-                                <div className="mb-2 flex items-center justify-between gap-2">
-                                    <p className="text-sm font-bold text-slate-900">{customOrderActiveQuote.title}</p>
-                                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${customOrderActiveQuote.status === "Accepted"
-                                            ? "bg-emerald-100 text-emerald-700"
-                                            : "bg-amber-100 text-amber-700"
-                                        }`}>
-                                        {customOrderActiveQuote.status}
+                            <div className="rounded-lg border border-emerald-100 bg-white p-3 shadow-sm">
+                                <div className="flex items-center justify-between gap-2">
+                                    <p className="text-xs font-bold uppercase tracking-wide text-slate-900">{customOrderActiveQuote.title}</p>
+                                    <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-700">
+                                        {customOrderActiveQuote.quotePhase === "blank_from_admin" && "Fill Up"}
+                                        {customOrderActiveQuote.quotePhase === "filled_by_customer" && "Waiting Price"}
+                                        {customOrderActiveQuote.quotePhase === "priced_by_admin" && "Priced"}
                                     </span>
                                 </div>
-                                <p className="text-sm text-slate-700">{customOrderActiveQuote.itemDescription}</p>
-                                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
-                                    <p>Qty: <span className="font-semibold text-slate-900">{customOrderActiveQuote.quantity}</span></p>
-                                    <p>Unit: <span className="font-semibold text-slate-900">{formatPeso(customOrderActiveQuote.unitPrice)}</span></p>
-                                    <p className="col-span-2">Total: <span className="font-bold text-emerald-700">{formatPeso(customOrderActiveQuote.quotedTotal)}</span></p>
-                                    {customOrderActiveQuote.deliveryDate && <p className="col-span-2">Target date: <span className="font-semibold text-slate-900">{customOrderActiveQuote.deliveryDate}</span></p>}
-                                </div>
-                                {customOrderActiveQuote.notes && (
-                                    <p className="mt-2 rounded-lg bg-slate-50 p-2 text-xs text-slate-600">{customOrderActiveQuote.notes}</p>
+
+                                {customOrderActiveQuote.quotePhase === "blank_from_admin" && (
+                                    <div className="mt-2 space-y-2">
+                                        <textarea
+                                            value={customQuoteDescription}
+                                            onChange={(event) => setCustomQuoteDescription(event.target.value)}
+                                            placeholder="Item details (flavor, size, etc.)"
+                                            className="min-h-20 w-full rounded-md border border-slate-200 p-2 text-sm"
+                                        />
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                value={customQuoteQuantity}
+                                                onChange={(event) => setCustomQuoteQuantity(event.target.value)}
+                                                placeholder="Quantity"
+                                                className="h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                                            />
+                                            <input
+                                                type="date"
+                                                value={customQuoteDeliveryDate}
+                                                onChange={(event) => setCustomQuoteDeliveryDate(event.target.value)}
+                                                className="h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                                            />
+                                        </div>
+                                        <textarea
+                                            value={customQuoteNotes}
+                                            onChange={(event) => setCustomQuoteNotes(event.target.value)}
+                                            placeholder="Notes (optional)"
+                                            className="min-h-16 w-full rounded-md border border-slate-200 p-2 text-sm"
+                                        />
+                                        <button
+                                            onClick={() => void handleSubmitCustomerQuoteDetails()}
+                                            disabled={submittingCustomQuote}
+                                            className="inline-flex min-h-10 w-full items-center justify-center rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            {submittingCustomQuote ? "Submitting..." : "Submit Details to Admin"}
+                                        </button>
+                                    </div>
                                 )}
-                                <button
-                                    onClick={() => void handleProceedCustomQuote()}
-                                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
-                                >
-                                    {customOrderActiveQuote.status === "Accepted" ? "Proceed to Checkout" : "Accept & Proceed to Checkout"}
-                                </button>
+
+                                {customOrderActiveQuote.quotePhase === "filled_by_customer" && (
+                                    <div className="mt-2 rounded-md bg-amber-50 p-2 text-xs text-amber-700">
+                                        Waiting for admin to set the price.
+                                    </div>
+                                )}
+
+                                {customOrderActiveQuote.quotePhase === "priced_by_admin" && (
+                                    <>
+                                        <p className="mt-2 text-sm text-slate-700">{customOrderActiveQuote.itemDescription}</p>
+                                        <div className="mt-2 grid grid-cols-2 gap-1 text-xs text-slate-600">
+                                            <p>Qty: <span className="font-semibold text-slate-900">{customOrderActiveQuote.quantity}</span></p>
+                                            <p>Unit: <span className="font-semibold text-slate-900">{formatPeso(customOrderActiveQuote.unitPrice)}</span></p>
+                                            <p className="col-span-2">Total: <span className="font-bold text-emerald-700">{formatPeso(customOrderActiveQuote.quotedTotal)}</span></p>
+                                            {customOrderActiveQuote.deliveryDate && <p className="col-span-2">Target date: <span className="font-semibold text-slate-900">{customOrderActiveQuote.deliveryDate}</span></p>}
+                                        </div>
+                                        {customOrderActiveQuote.notes && (
+                                            <p className="mt-2 rounded-md bg-slate-50 p-2 text-xs text-slate-600">{customOrderActiveQuote.notes}</p>
+                                        )}
+                                        <button
+                                            onClick={() => void handleProceedCustomQuote()}
+                                            className="mt-2 inline-flex min-h-10 w-full items-center justify-center rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800"
+                                        >
+                                            {customOrderActiveQuote.status === "Accepted" ? "Proceed to Checkout" : "Accept & Proceed to Checkout"}
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         )}
                         <div className="flex justify-start">

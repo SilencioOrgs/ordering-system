@@ -27,9 +27,10 @@ type QuoteRow = {
   title: string;
   item_description: string;
   quantity: number;
-  unit_price: number | string;
+  unit_price: number | string | null;
   quoted_total: number | string;
   status: "Sent" | "Accepted" | "Declined" | "Superseded";
+  quote_phase: "blank_from_admin" | "filled_by_customer" | "priced_by_admin";
 };
 
 type OrderItemPayload = {
@@ -144,7 +145,7 @@ export async function POST(req: NextRequest) {
   if (customQuoteId) {
     const { data: quote, error: quoteError } = await supabase
       .from("custom_order_quotes")
-      .select("id, title, item_description, quantity, unit_price, quoted_total, status")
+      .select("id, title, item_description, quantity, unit_price, quoted_total, status, quote_phase")
       .eq("id", customQuoteId)
       .single();
 
@@ -156,9 +157,12 @@ export async function POST(req: NextRequest) {
     if (!["Sent", "Accepted"].includes(typedQuote.status)) {
       return NextResponse.json({ error: "Quotation is no longer valid for checkout" }, { status: 400 });
     }
+    if (typedQuote.quote_phase !== "priced_by_admin") {
+      return NextResponse.json({ error: "Quotation is not priced by admin yet" }, { status: 400 });
+    }
 
     const quantity = Math.max(1, Math.floor(Number(typedQuote.quantity ?? 1)));
-    const unitPrice = Number(typedQuote.unit_price ?? 0);
+    const unitPrice = Number(typedQuote.unit_price);
 
     if (!Number.isFinite(unitPrice) || unitPrice < 0) {
       return NextResponse.json({ error: "Invalid quotation amount" }, { status: 400 });

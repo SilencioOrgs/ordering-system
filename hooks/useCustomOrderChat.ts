@@ -27,11 +27,13 @@ type QuoteRow = {
   title: string;
   item_description: string;
   quantity: number;
-  unit_price: number | string;
+  unit_price: number | string | null;
   quoted_total: number | string;
   delivery_date: string | null;
   notes: string | null;
   status: QuoteStatus;
+  quote_phase: "blank_from_admin" | "filled_by_customer" | "priced_by_admin";
+  customer_submitted_at: string | null;
   created_at: string;
 };
 
@@ -53,6 +55,8 @@ export interface CustomOrderQuote {
   deliveryDate: string | null;
   notes: string | null;
   status: QuoteStatus;
+  quotePhase: "blank_from_admin" | "filled_by_customer" | "priced_by_admin";
+  customerSubmittedAt: string | null;
   createdAt: string;
 }
 
@@ -84,6 +88,8 @@ function mapQuoteRow(row: QuoteRow): CustomOrderQuote {
     deliveryDate: row.delivery_date,
     notes: row.notes,
     status: row.status,
+    quotePhase: row.quote_phase,
+    customerSubmittedAt: row.customer_submitted_at,
     createdAt: row.created_at,
   };
 }
@@ -109,7 +115,7 @@ export function useCustomOrderChat(user: User | null) {
         .order("created_at", { ascending: true }),
       supabase
         .from("custom_order_quotes")
-        .select("id, thread_id, title, item_description, quantity, unit_price, quoted_total, delivery_date, notes, status, created_at")
+        .select("id, thread_id, title, item_description, quantity, unit_price, quoted_total, delivery_date, notes, status, quote_phase, customer_submitted_at, created_at")
         .eq("thread_id", targetThreadId)
         .order("created_at", { ascending: false }),
     ]);
@@ -341,6 +347,33 @@ export function useCustomOrderChat(user: User | null) {
     await ensureThread();
   }, [ensureThread]);
 
+  const submitQuoteDetails = useCallback(async (quoteId: string, payload: {
+    title?: string;
+    itemDescription: string;
+    quantity: number;
+    deliveryDate?: string | null;
+    notes?: string | null;
+  }) => {
+    if (!quoteId) return;
+
+    setError(null);
+
+    const response = await fetch(`/api/custom-orders/quotes/${quoteId}/submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const body = (await response.json().catch(() => ({}))) as { error?: string; quote?: CustomOrderQuote };
+
+    if (!response.ok) {
+      setError(body.error ?? "Failed to submit quotation details");
+      throw new Error(body.error ?? "Failed to submit quotation details");
+    }
+
+    await ensureThread();
+  }, [ensureThread]);
+
   const activeQuote = useMemo(() => {
     if (acceptedQuoteId) {
       return quotes.find((quote) => quote.id === acceptedQuoteId) ?? null;
@@ -360,6 +393,7 @@ export function useCustomOrderChat(user: User | null) {
       sending,
       error,
       sendMessage,
+      submitQuoteDetails,
       acceptQuote,
       refetch: ensureThread,
     }),
@@ -373,6 +407,7 @@ export function useCustomOrderChat(user: User | null) {
       sending,
       error,
       sendMessage,
+      submitQuoteDetails,
       acceptQuote,
       ensureThread,
     ]

@@ -9,6 +9,8 @@ type QuoteWithThreadRow = {
   id: string;
   thread_id: string;
   status: "Sent" | "Accepted" | "Declined" | "Superseded";
+  quote_phase: "blank_from_admin" | "filled_by_customer" | "priced_by_admin";
+  unit_price: number | null;
   custom_order_threads: {
     customer_user_id: string;
   } | null;
@@ -42,7 +44,7 @@ export async function POST(_req: Request, { params }: Params) {
 
   const { data: quote, error: quoteError } = await supabase
     .from("custom_order_quotes")
-    .select("id, thread_id, status, custom_order_threads!inner(customer_user_id)")
+    .select("id, thread_id, status, quote_phase, unit_price, custom_order_threads!inner(customer_user_id)")
     .eq("id", id)
     .single();
 
@@ -57,6 +59,10 @@ export async function POST(_req: Request, { params }: Params) {
 
   if (typedQuote.status === "Declined" || typedQuote.status === "Superseded") {
     return NextResponse.json({ error: "This quotation is no longer available" }, { status: 400 });
+  }
+
+  if (typedQuote.quote_phase !== "priced_by_admin" || typedQuote.unit_price === null) {
+    return NextResponse.json({ error: "Quotation is not priced yet" }, { status: 400 });
   }
 
   const nowIso = new Date().toISOString();
