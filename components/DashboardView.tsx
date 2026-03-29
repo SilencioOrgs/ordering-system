@@ -25,6 +25,7 @@ import {
     type SavedDeliveryAddressEntry,
 } from "@/lib/deliveryAddress";
 import { useToast } from "@/components/shared/Toast";
+import type { LoyaltyTierRule } from "@/lib/rewards/types";
 import LocationPicker from "./LocationPicker";
 import ProductModal from "./ProductModal";
 import RatingModal from "./RatingModal";
@@ -151,6 +152,130 @@ function getNotificationMeta(message: OrderMessage) {
     };
 }
 
+type RankTheme = {
+    hero: string;
+    overline: string;
+    subtext: string;
+    progressTrack: string;
+    progressBar: string;
+    progressText: string;
+    primaryButton: string;
+    secondaryButton: string;
+    surface: string;
+    surfaceBadge: string;
+    accentText: string;
+    accentBorder: string;
+};
+
+function getRankTheme(rankId: string | null | undefined): RankTheme {
+    switch (rankId) {
+        case "bronze_suki":
+            return {
+                hero: "border-orange-200 bg-gradient-to-r from-amber-900 via-orange-700 to-amber-500",
+                overline: "text-orange-100",
+                subtext: "text-orange-50",
+                progressTrack: "bg-white/20",
+                progressBar: "bg-white",
+                progressText: "text-orange-50",
+                primaryButton: "bg-white text-orange-800 hover:bg-orange-50",
+                secondaryButton: "bg-white/15 text-white hover:bg-white/25",
+                surface: "border-orange-200 bg-orange-50",
+                surfaceBadge: "bg-orange-100 text-orange-700",
+                accentText: "text-orange-900",
+                accentBorder: "ring-orange-300",
+            };
+        case "silver_suki":
+            return {
+                hero: "border-sky-200 bg-gradient-to-r from-slate-700 via-sky-600 to-cyan-500",
+                overline: "text-sky-100",
+                subtext: "text-sky-50",
+                progressTrack: "bg-white/20",
+                progressBar: "bg-white",
+                progressText: "text-sky-50",
+                primaryButton: "bg-white text-sky-800 hover:bg-sky-50",
+                secondaryButton: "bg-white/15 text-white hover:bg-white/25",
+                surface: "border-sky-200 bg-sky-50",
+                surfaceBadge: "bg-sky-100 text-sky-700",
+                accentText: "text-sky-900",
+                accentBorder: "ring-sky-300",
+            };
+        case "gold_suki":
+            return {
+                hero: "border-amber-200 bg-gradient-to-r from-amber-900 via-yellow-600 to-orange-500",
+                overline: "text-amber-100",
+                subtext: "text-amber-50",
+                progressTrack: "bg-white/20",
+                progressBar: "bg-white",
+                progressText: "text-amber-50",
+                primaryButton: "bg-white text-amber-900 hover:bg-amber-50",
+                secondaryButton: "bg-white/15 text-white hover:bg-white/25",
+                surface: "border-amber-200 bg-amber-50",
+                surfaceBadge: "bg-amber-100 text-amber-700",
+                accentText: "text-amber-900",
+                accentBorder: "ring-amber-300",
+            };
+        case "diamond_suki":
+            return {
+                hero: "border-cyan-200 bg-gradient-to-r from-indigo-700 via-sky-600 to-cyan-400",
+                overline: "text-cyan-100",
+                subtext: "text-cyan-50",
+                progressTrack: "bg-white/20",
+                progressBar: "bg-white",
+                progressText: "text-cyan-50",
+                primaryButton: "bg-white text-cyan-900 hover:bg-cyan-50",
+                secondaryButton: "bg-white/15 text-white hover:bg-white/25",
+                surface: "border-cyan-200 bg-cyan-50",
+                surfaceBadge: "bg-cyan-100 text-cyan-700",
+                accentText: "text-cyan-900",
+                accentBorder: "ring-cyan-300",
+            };
+        case "baguhan":
+        default:
+            return {
+                hero: "border-slate-200 bg-gradient-to-r from-slate-700 via-slate-600 to-stone-500",
+                overline: "text-slate-200",
+                subtext: "text-slate-100",
+                progressTrack: "bg-white/20",
+                progressBar: "bg-white",
+                progressText: "text-slate-100",
+                primaryButton: "bg-white text-slate-800 hover:bg-slate-100",
+                secondaryButton: "bg-white/15 text-white hover:bg-white/25",
+                surface: "border-slate-200 bg-slate-50",
+                surfaceBadge: "bg-slate-200 text-slate-700",
+                accentText: "text-slate-900",
+                accentBorder: "ring-slate-300",
+            };
+    }
+}
+
+function formatTierRange(tier: LoyaltyTierRule) {
+    if (tier.maxPoints === null) {
+        return `${tier.minPoints.toLocaleString()}+ pts`;
+    }
+
+    return `${tier.minPoints.toLocaleString()}-${tier.maxPoints.toLocaleString()} pts`;
+}
+
+function getTierPerkSummary(tier: LoyaltyTierRule) {
+    const perks: string[] = [];
+
+    if (tier.percentOff > 0) {
+        perks.push(`${tier.percentOff}% off perk`);
+    }
+
+    if (tier.freeShippingAlways) {
+        perks.push("free shipping always");
+    } else if (tier.monthlyFreeShippingLimit !== null) {
+        perks.push(`free shipping ${tier.monthlyFreeShippingLimit}x/month`);
+    }
+
+    if (perks.length === 0) {
+        return "Starter tier for new suki accounts.";
+    }
+
+    return perks.join(" + ");
+}
+
 export default function DashboardView({ user, cartCount, cartItems, onOpenCart, onAddToCart, onCheckoutCustomQuote, onLogout, shouldRedirectToOrders, onRedirectHandled }: DashboardViewProps) {
     const { toast } = useToast();
     const { products, loading: productsLoading } = useProducts();
@@ -216,12 +341,19 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
     const addToCartToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const supportChatScrollRef = useRef<HTMLDivElement | null>(null);
     const customOrderChatScrollRef = useRef<HTMLDivElement | null>(null);
+    const rewardsRanksRef = useRef<HTMLDivElement | null>(null);
+    const [rewardsTargetSection, setRewardsTargetSection] = useState<"ranks" | null>(null);
 
     const displayName =
         profileFullName.trim() ||
         metadataName ||
         authEmail.split("@")[0] ||
         "Customer";
+    const loyaltyTiers = [...(rewardsSummary?.rewardSettings.loyaltyTiers ?? [])]
+        .filter((tier) => tier.isActive)
+        .sort((a, b) => a.minPoints - b.minPoints);
+    const currentRankId = rankProgress.currentTier?.id ?? loyaltyTiers[0]?.id ?? null;
+    const currentRankTheme = getRankTheme(currentRankId);
 
     const savedPlaces = savedAddressData?.address?.trim() || DEFAULT_SAVED_PLACE;
     const editingAddress = addressBeingEditedId
@@ -498,6 +630,20 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
 
         return () => window.cancelAnimationFrame(frameId);
     }, [activeTab, chatScreen, customOrderMessages, customOrderActiveQuote]);
+
+    useEffect(() => {
+        if (activeTab !== "rewards" || rewardsTargetSection !== "ranks" || !rewardsRanksRef.current) return;
+
+        const frameId = window.requestAnimationFrame(() => {
+            rewardsRanksRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            });
+            setRewardsTargetSection(null);
+        });
+
+        return () => window.cancelAnimationFrame(frameId);
+    }, [activeTab, rewardsTargetSection]);
 
     const handleSendSupportMessage = async () => {
         const trimmed = chatMessage.trim();
@@ -1342,32 +1488,29 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                             </div>
                         </div>
 
-                        <div className="mb-2 rounded-none border-y border-emerald-100 bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-500 p-5 text-white shadow-sm md:rounded-lg md:border">
+                        <div className={`mb-2 rounded-none border-y p-5 text-white shadow-sm md:rounded-lg md:border ${currentRankTheme.hero}`}>
                             <div className="flex items-start justify-between gap-4">
                                 <div>
-                                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-100">Rewards</p>
+                                    <p className={`text-xs font-semibold uppercase tracking-[0.24em] ${currentRankTheme.overline}`}>Rewards</p>
                                     <h3 className="mt-2 text-2xl font-bold">
                                         {rankProgress.currentTier?.name ?? rewardsSummary?.loyaltyAccount?.currentRank ?? "Baguhan"}
                                     </h3>
-                                    <p className="mt-1 text-sm text-emerald-50">
+                                    <p className={`mt-1 text-sm ${currentRankTheme.subtext}`}>
                                         {rewardsSummary?.loyaltyAccount?.yearlyPoints ?? 0} points this year
                                     </p>
                                 </div>
-                                <button
-                                    onClick={() => setActiveTab("rewards")}
-                                    className="rounded-full bg-white/15 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/25"
-                                >
-                                    Open rewards
-                                </button>
+                                <span className="rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white">
+                                    {rankProgress.currentTier?.badge ?? "Baguhan"}
+                                </span>
                             </div>
                             <div className="mt-4">
-                                <div className="h-2 overflow-hidden rounded-full bg-white/20">
+                                <div className={`h-2 overflow-hidden rounded-full ${currentRankTheme.progressTrack}`}>
                                     <div
-                                        className="h-full rounded-full bg-white transition-all"
+                                        className={`h-full rounded-full transition-all ${currentRankTheme.progressBar}`}
                                         style={{ width: `${rankProgress.progressPercent}%` }}
                                     />
                                 </div>
-                                <div className="mt-2 flex items-center justify-between text-xs text-emerald-50">
+                                <div className={`mt-2 flex items-center justify-between text-xs ${currentRankTheme.progressText}`}>
                                     <span>{rankProgress.currentTier?.badge ?? "Baguhan"}</span>
                                     <span>
                                         {rankProgress.nextTier
@@ -1375,6 +1518,23 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                                             : "Top loyalty rank reached"}
                                     </span>
                                 </div>
+                            </div>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                <button
+                                    onClick={() => setActiveTab("rewards")}
+                                    className={`rounded-full px-3 py-2 text-xs font-semibold transition-colors ${currentRankTheme.primaryButton}`}
+                                >
+                                    Open rewards
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setRewardsTargetSection("ranks");
+                                        setActiveTab("rewards");
+                                    }}
+                                    className={`rounded-full px-3 py-2 text-xs font-semibold transition-colors ${currentRankTheme.secondaryButton}`}
+                                >
+                                    View all ranks
+                                </button>
                             </div>
                         </div>
 
@@ -1408,32 +1568,45 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
             {activeTab === "rewards" && (
                 <section className="mx-auto min-h-[calc(100vh-80px)] max-w-xl bg-slate-50 px-4 py-4 pb-28">
                     <div className="overflow-hidden rounded-[28px] border border-emerald-100 bg-white shadow-sm">
-                        <div className="bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-500 px-5 py-5 text-white">
+                        <div className={`px-5 py-5 text-white ${currentRankTheme.hero}`}>
                             <div className="flex items-start justify-between gap-4">
                                 <div>
-                                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-100">Rewards wallet</p>
+                                    <p className={`text-xs font-semibold uppercase tracking-[0.24em] ${currentRankTheme.overline}`}>Rewards wallet</p>
                                     <h2 className="mt-2 text-2xl font-bold">
                                         {rankProgress.currentTier?.name ?? rewardsSummary?.loyaltyAccount?.currentRank ?? "Baguhan"}
                                     </h2>
-                                    <p className="mt-1 text-sm text-emerald-50">
+                                    <p className={`mt-1 text-sm ${currentRankTheme.subtext}`}>
                                         {(rewardsSummary?.loyaltyAccount?.totalPoints ?? 0).toLocaleString()} lifetime points
                                     </p>
                                 </div>
-                                <button
-                                    onClick={() => setActiveTab("profile")}
-                                    className="rounded-full bg-white/15 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/25"
-                                >
-                                    Back to account
-                                </button>
+                                <div className="flex flex-col items-end gap-2">
+                                    <button
+                                        onClick={() => setActiveTab("profile")}
+                                        className={`rounded-full px-3 py-2 text-xs font-semibold transition-colors ${currentRankTheme.secondaryButton}`}
+                                    >
+                                        Back to account
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            rewardsRanksRef.current?.scrollIntoView({
+                                                behavior: "smooth",
+                                                block: "start",
+                                            });
+                                        }}
+                                        className={`rounded-full px-3 py-2 text-xs font-semibold transition-colors ${currentRankTheme.primaryButton}`}
+                                    >
+                                        View all ranks
+                                    </button>
+                                </div>
                             </div>
                             <div className="mt-4">
-                                <div className="h-2 overflow-hidden rounded-full bg-white/20">
+                                <div className={`h-2 overflow-hidden rounded-full ${currentRankTheme.progressTrack}`}>
                                     <div
-                                        className="h-full rounded-full bg-white transition-all"
+                                        className={`h-full rounded-full transition-all ${currentRankTheme.progressBar}`}
                                         style={{ width: `${rankProgress.progressPercent}%` }}
                                     />
                                 </div>
-                                <div className="mt-2 flex items-center justify-between text-xs text-emerald-50">
+                                <div className={`mt-2 flex items-center justify-between text-xs ${currentRankTheme.progressText}`}>
                                     <span>{rewardsSummary?.loyaltyAccount?.yearlyPoints ?? 0} yearly points</span>
                                     <span>
                                         {rankProgress.nextTier
@@ -1458,6 +1631,58 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Delivered</p>
                                     <p className="mt-1 text-xl font-bold text-slate-900">{rewardsSummary?.loyaltyAccount?.deliveredOrders ?? 0}</p>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div ref={rewardsRanksRef} className="border-b border-slate-100 px-5 py-4">
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-900">All loyalty ranks</h3>
+                                    <p className="mt-1 text-xs text-slate-500">Each rank has its own perks and color theme.</p>
+                                </div>
+                                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                                    {loyaltyTiers.length} tiers
+                                </span>
+                            </div>
+                            <div className="mt-3 space-y-3">
+                                {loyaltyTiers.map((tier) => {
+                                    const tierTheme = getRankTheme(tier.id);
+                                    const isCurrentTier = rankProgress.currentTier?.id === tier.id;
+                                    const isNextTier = rankProgress.nextTier?.id === tier.id;
+
+                                    return (
+                                        <div
+                                            key={tier.id}
+                                            className={`rounded-3xl border p-4 transition-transform ${tierTheme.surface} ${isCurrentTier ? `ring-2 ${tierTheme.accentBorder}` : ""}`}
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${tierTheme.surfaceBadge}`}>
+                                                        {tier.badge}
+                                                    </span>
+                                                    <h4 className={`mt-2 text-lg font-bold ${tierTheme.accentText}`}>{tier.name}</h4>
+                                                    <p className="mt-1 text-sm text-slate-600">{formatTierRange(tier)}</p>
+                                                </div>
+                                                <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${isCurrentTier ? tierTheme.surfaceBadge : isNextTier ? "bg-white text-slate-700" : "bg-white/80 text-slate-500"}`}>
+                                                    {isCurrentTier ? "Current" : isNextTier ? "Next up" : "Locked"}
+                                                </span>
+                                            </div>
+                                            <p className="mt-3 text-sm leading-relaxed text-slate-600">{getTierPerkSummary(tier)}</p>
+                                            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
+                                                <span className="rounded-full bg-white/80 px-2.5 py-1">
+                                                    {tier.percentOff > 0 ? `${tier.percentOff}% off perk` : "Starter tier"}
+                                                </span>
+                                                <span className="rounded-full bg-white/80 px-2.5 py-1">
+                                                    {tier.freeShippingAlways
+                                                        ? "Free shipping always"
+                                                        : tier.monthlyFreeShippingLimit !== null
+                                                            ? `${tier.monthlyFreeShippingLimit} free ship/month`
+                                                            : "No shipping perk yet"}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
 
