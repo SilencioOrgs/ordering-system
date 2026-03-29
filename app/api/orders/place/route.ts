@@ -4,6 +4,9 @@ import { cookies } from "next/headers";
 
 import { createDeliveryAddressData } from "@/lib/deliveryAddress";
 import { normalizePaymentReference, type PaymentReceiptExtractionResult } from "@/lib/payments/receiptTypes";
+import { applyRewardOption, isScheduledDateAllowed, resolveRewardOption } from "@/lib/rewards/engine";
+import { createUserNotification, getAvailableRewardOptions, getRewardSummary, loadStoreAndRewardSettings } from "@/lib/rewards/service";
+import type { RewardSelection } from "@/lib/rewards/types";
 import { createServiceClient } from "@/lib/supabase/service";
 
 type PlaceOrderItemInput = {
@@ -36,6 +39,7 @@ type PlaceOrderPayload = {
   receiptExtraction?: PaymentReceiptExtractionResult | null;
   paymentMethod: "COD" | "GCash" | "Maya";
   scheduledDate?: string | null;
+  rewardSelection?: RewardSelection;
   customerName: string;
   customerPhone?: string;
 };
@@ -107,6 +111,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
   }
 
+  const { storeSettings } = await loadStoreAndRewardSettings(serviceSupabase);
+
   const normalizedAddress =
     deliveryMode === "Delivery"
       ? createDeliveryAddressData({
@@ -130,6 +136,20 @@ export async function POST(req: NextRequest) {
 
   if (deliveryMode === "Delivery" && !normalizedAddress?.address.trim()) {
     return NextResponse.json({ error: "Delivery address is required" }, { status: 400 });
+  }
+
+  const scheduledDate =
+    typeof body.scheduledDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.scheduledDate)
+      ? body.scheduledDate
+      : null;
+
+  if (!scheduledDate || !isScheduledDateAllowed(scheduledDate, storeSettings)) {
+    return NextResponse.json(
+      {
+        error: `Please choose a pickup or delivery date at least ${storeSettings.advanceNoticeDays} day(s) ahead.`,
+      },
+      { status: 400 }
+    );
   }
 
   const orderItemsForInsert: Omit<OrderItemPayload, "order_id">[] = [];
@@ -225,9 +245,16 @@ export async function POST(req: NextRequest) {
   }
 
   const subtotal = orderItemsForInsert.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const deliveryFee = deliveryMode === "Delivery" ? 50 : 0;
+  const deliveryFee = deliveryMode === "Delivery" ? storeSettings.deliveryFee : 0;
+  const rewardSummary = await getRewardSummary(serviceSupabase, user.id);
+  const rewardOptions = getAvailableRewardOptions(rewardSummary);
+  const selectedReward = resolveRewardOption(rewardOptions, subtotal, body.rewardSelection ?? null);
+  if (body.rewardSelection && !selectedReward) {
+    return NextResponse.json({ error: "The selected voucher or reward is no longer available." }, { status: 400 });
+  }
+  const rewardBreakdown = applyRewardOption(subtotal, deliveryFee, selectedReward);
   const isWalletPayment = paymentMethod === "GCash" || paymentMethod === "Maya";
-  const expectedWalletAmount = subtotal + deliveryFee;
+  const expectedWalletAmount = rewardBreakdown.total;
   // Match current schema enum values: Pending | Awaiting Verification | Verified | Rejected
   const paymentStatus = isWalletPayment ? "Awaiting Verification" : "Pending";
   const orderStatus = "Pending";
@@ -262,11 +289,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const scheduledDate =
-    body.scheduledDate && !Number.isNaN(Date.parse(body.scheduledDate))
-      ? new Date(body.scheduledDate).toISOString().slice(0, 10)
-      : null;
-
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
@@ -294,6 +316,13 @@ export async function POST(req: NextRequest) {
       status: orderStatus,
       subtotal,
       delivery_fee: deliveryFee,
+      total: rewardBreakdown.total,
+      discount_amount: rewardBreakdown.discountAmount,
+      shipping_discount_amount: rewardBreakdown.shippingDiscountAmount,
+      reward_source: selectedReward?.source ?? null,
+      applied_reward_id: selectedReward?.id ?? null,
+      applied_reward_title: selectedReward?.title ?? null,
+      reward_snapshot: selectedReward ?? null,
       scheduled_date: scheduledDate,
     })
     .select("id, order_number")
@@ -358,6 +387,30 @@ export async function POST(req: NextRequest) {
     await supabase.from("orders").delete().eq("id", order.id);
     return NextResponse.json({ error: "Failed to save order items" }, { status: 500 });
   }
+
+  if (selectedReward?.source === "user_voucher") {
+    await serviceSupabase
+      .from("user_vouchers")
+      .update({
+        status: "used",
+        used_order_id: order.id,
+        used_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", selectedReward.id)
+      .eq("user_id", user.id);
+  }
+
+  await createUserNotification(
+    serviceSupabase,
+    user.id,
+    `Order ${order.order_number} received`,
+    selectedReward
+      ? `${selectedReward.title} applied. We'll review your order shortly.`
+      : "We'll review your order shortly.",
+    "order",
+    { orderId: order.id }
+  );
 
   const { data: cart } = await supabase
     .from("carts")

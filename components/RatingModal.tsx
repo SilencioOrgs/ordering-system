@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Star, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 interface RatingModalProps {
   orderId: string;
@@ -29,14 +28,17 @@ export default function RatingModal({
     if (!orderId || rating === 0 || submitting) return;
     setSubmitting(true);
 
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("orders")
-      .update({ rated: true, rating, rating_note: note.trim() || null })
-      .eq("id", orderId);
+    const response = await fetch(`/api/orders/${orderId}/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rating,
+        note,
+      }),
+    });
 
     setSubmitting(false);
-    if (error) return;
+    if (!response.ok) return;
     onSubmitted();
   };
 

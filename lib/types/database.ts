@@ -71,9 +71,21 @@ export interface Order {
   payment_status: string;
   subtotal: number;
   delivery_fee: number;
+  discount_amount: number;
+  shipping_discount_amount: number;
   total: number;
   status: OrderStatus;
   scheduled_date: string | null;
+  reward_source: string | null;
+  applied_reward_id: string | null;
+  applied_reward_title: string | null;
+  reward_snapshot: unknown;
+  points_earned: number;
+  bonus_points_earned: number;
+  rated: boolean;
+  rating: number | null;
+  rating_note: string | null;
+  rated_at: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { type ChangeEvent, SVGProps, useCallback, useEffect, useState } from "react";
+import { type ChangeEvent, SVGProps, useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Minus, MapPin, CreditCard, Banknote, Calendar, CheckCircle2, Truck, Store, Upload, QrCode, Phone } from "lucide-react";
 import Image from "next/image";
@@ -17,9 +17,12 @@ import {
     type SavedDeliveryAddressEntry,
 } from "@/lib/deliveryAddress";
 import { useAuth } from "@/hooks/useAuth";
+import { useRewards } from "@/hooks/useRewards";
 import { createClient } from "@/lib/supabase/client";
 import { placeOrder } from "@/lib/orders/placeOrder";
 import { normalizePaymentReference, type PaymentReceiptExtractionResult } from "@/lib/payments/receiptTypes";
+import { getMinimumScheduledDate } from "@/lib/rewards/engine";
+import type { RewardSelection } from "@/lib/rewards/types";
 import LocationPicker from "./LocationPicker";
 
 export interface CartItem extends Product {
@@ -57,6 +60,7 @@ export default function CartDrawer({
     onPlaceOrder,
 }: CartDrawerProps) {
     const { user } = useAuth();
+    const { loading: rewardsLoading, storeSettings, getCartRewards } = useRewards(user);
     const metadataName =
         typeof user?.user_metadata?.full_name === "string"
             ? user.user_metadata.full_name
@@ -87,12 +91,19 @@ export default function CartDrawer({
     const [receiptExtractionError, setReceiptExtractionError] = useState<string | null>(null);
     const [isExtractingReceipt, setIsExtractingReceipt] = useState(false);
     const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
+    const [scheduledDate, setScheduledDate] = useState("");
+    const [selectedReward, setSelectedReward] = useState<RewardSelection>(null);
+    const [disableReward, setDisableReward] = useState(false);
 
     const customQuoteTotal = customQuoteCheckout ? customQuoteCheckout.quotedTotal : 0;
     const hasCheckoutItems = cartItems.length > 0 || Boolean(customQuoteCheckout);
     const totalAmount = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0) + customQuoteTotal;
-    const shippingFee = deliveryMode === "delivery" ? 50 : 0;
-    const totalPayment = totalAmount + shippingFee;
+    const shippingFee = deliveryMode === "delivery" ? storeSettings.deliveryFee : 0;
+    const rewardState = useMemo(
+        () => getCartRewards(totalAmount, shippingFee, selectedReward, disableReward),
+        [disableReward, getCartRewards, selectedReward, shippingFee, totalAmount]
+    );
+    const totalPayment = rewardState.computed.total;
     const selectedAddressLabel = selectedAddress?.address?.trim() || DEFAULT_CART_ADDRESS;
     const isUsingSavedAddress =
         Boolean(savedAddress?.address) &&
@@ -100,6 +111,8 @@ export default function CartDrawer({
         savedAddress?.lat === selectedAddress?.lat &&
         savedAddress?.lng === selectedAddress?.lng;
     const hasSavedAddressOptions = savedAddressList.length > 0;
+    const minimumScheduleDate = getMinimumScheduledDate(storeSettings.advanceNoticeDays);
+    const isNoRewardSelected = disableReward || (selectedReward === null && !rewardState.selectedOption);
 
     useEffect(() => {
         if (!user?.id || !isOpen) return;
@@ -289,11 +302,48 @@ export default function CartDrawer({
         };
     }, [receiptPreviewUrl]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+
+        setScheduledDate((current) => {
+            if (customQuoteCheckout?.deliveryDate) {
+                return customQuoteCheckout.deliveryDate;
+            }
+
+            if (current && current >= minimumScheduleDate) {
+                return current;
+            }
+
+            return minimumScheduleDate;
+        });
+    }, [customQuoteCheckout?.deliveryDate, isOpen, minimumScheduleDate]);
+
+    useEffect(() => {
+        if (!disableReward && selectedReward && !rewardState.selectedOption) {
+            setSelectedReward(null);
+        }
+    }, [disableReward, rewardState.selectedOption, selectedReward]);
+
+    useEffect(() => {
+        if (isOpen) return;
+
+        setDisableReward(false);
+        setSelectedReward(null);
+    }, [isOpen]);
+
     const submitOrder = async (method: "COD" | "GCash" | "Maya") => {
         if (!user) return;
         if (!hasCheckoutItems) return;
         if (deliveryMode === "delivery" && !hasSavedDeliveryAddress(selectedAddress, DEFAULT_CART_ADDRESS)) {
             setOrderError("Please select or pin your delivery address first.");
+            return;
+        }
+        if (!scheduledDate) {
+            setOrderError("Please choose your pickup or delivery date first.");
+            return;
+        }
+        if (scheduledDate < minimumScheduleDate) {
+            setOrderError(`Please choose a date at least ${storeSettings.advanceNoticeDays} day(s) ahead.`);
             return;
         }
 
@@ -408,7 +458,10 @@ export default function CartDrawer({
                 paymentProofUrl: method !== "COD" ? receiptImageUrl : null,
                 receiptExtraction: method !== "COD" ? receiptExtraction : null,
                 paymentMethod: method,
-                scheduledDate: null,
+                scheduledDate,
+                rewardSelection: rewardState.selectedOption
+                    ? { source: rewardState.selectedOption.source, id: rewardState.selectedOption.id }
+                    : null,
                 customerName: profile?.full_name?.trim() || metadataName || user.email || "Customer",
                 customerPhone: resolvedDeliveryPhone,
             });
@@ -580,19 +633,25 @@ export default function CartDrawer({
                                     </div>
 
                                     <div className="space-y-4">
-                                        {/* Date Picker (Simulated) */}
+                                        {/* Date Picker */}
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Pickup/Delivery Date</label>
                                             <div className="relative">
                                                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" strokeWidth={1.5} />
                                                 <input
-                                                    type="text"
-                                                    readOnly
-                                                    value="Oct 24, 2024"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-md py-3 pl-12 pr-4 text-slate-900 font-medium cursor-pointer hover:bg-slate-100 transition-colors outline-none focus:border-emerald-500"
+                                                    type="date"
+                                                    value={scheduledDate}
+                                                    min={minimumScheduleDate}
+                                                    onChange={(event) => {
+                                                        setScheduledDate(event.target.value);
+                                                        setOrderError(null);
+                                                    }}
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-md py-3 pl-12 pr-4 text-slate-900 font-medium transition-colors outline-none focus:border-emerald-500"
                                                 />
                                             </div>
-                                            <p className="text-xs text-amber-600 mt-1.5 ml-1 font-medium">*Requires 3 days advance notice</p>
+                                            <p className="text-xs text-amber-600 mt-1.5 ml-1 font-medium">
+                                                *Requires {storeSettings.advanceNoticeDays} day(s) advance notice
+                                            </p>
                                         </div>
 
                                         {/* Location Pin */}
@@ -664,6 +723,109 @@ export default function CartDrawer({
                                             </div>
                                         )}
 
+                                        {hasCheckoutItems && (
+                                            <div className="space-y-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-emerald-900">Rewards & vouchers</p>
+                                                        <p className="mt-1 text-xs leading-relaxed text-emerald-800/80">
+                                                            {rewardState.nextMilestone
+                                                                ? `Add PHP ${rewardState.nextMilestone.amountLeft.toFixed(2)} more to unlock ${rewardState.nextMilestone.rule.label}.`
+                                                                : "You already unlocked the top cart milestone. Choose the best reward below."}
+                                                        </p>
+                                                    </div>
+                                                    {rewardState.selectedOption && (
+                                                        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-emerald-700 shadow-sm">
+                                                            {rewardState.selectedOption.badge ?? "Applied"}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {rewardState.nextMilestone && (
+                                                    <div>
+                                                        <div className="h-2 overflow-hidden rounded-full bg-white/80">
+                                                            <div
+                                                                className="h-full rounded-full bg-emerald-600 transition-all"
+                                                                style={{
+                                                                    width: `${Math.min(
+                                                                        100,
+                                                                        (totalAmount / rewardState.nextMilestone.rule.minOrderAmount) * 100
+                                                                    )}%`,
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <div className="mt-2 flex items-center justify-between text-[11px] font-medium text-emerald-800/80">
+                                                            <span>Cart total: PHP {totalAmount.toFixed(2)}</span>
+                                                            <span>Target: PHP {rewardState.nextMilestone.rule.minOrderAmount.toFixed(2)}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="space-y-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setDisableReward(true);
+                                                            setSelectedReward(null);
+                                                        }}
+                                                        className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${isNoRewardSelected ? "border-emerald-400 bg-white shadow-sm" : "border-white/70 bg-white/60 hover:bg-white"}`}
+                                                    >
+                                                        <p className="text-sm font-semibold text-slate-900">No voucher</p>
+                                                        <p className="mt-1 text-xs text-slate-500">Keep this order at the regular total.</p>
+                                                    </button>
+
+                                                    {rewardState.eligibleOptions.length === 0 ? (
+                                                        <div className="rounded-xl border border-dashed border-emerald-200 bg-white/70 px-4 py-3 text-xs text-slate-500">
+                                                            {rewardsLoading
+                                                                ? "Loading available rewards..."
+                                                                : "No eligible vouchers yet. Add more items or keep ordering to unlock perks."}
+                                                        </div>
+                                                    ) : (
+                                                        rewardState.eligibleOptions.map((option) => {
+                                                            const isSelected =
+                                                                rewardState.selectedOption?.source === option.source &&
+                                                                rewardState.selectedOption?.id === option.id;
+                                                            const savings =
+                                                                (option.percentOff ? (totalAmount * option.percentOff) / 100 : option.fixedAmountOff ?? 0) +
+                                                                (option.freeShipping ? shippingFee : 0);
+
+                                                            return (
+                                                                <button
+                                                                    key={`${option.source}-${option.id}`}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setDisableReward(false);
+                                                                        setSelectedReward({ source: option.source, id: option.id });
+                                                                    }}
+                                                                    className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${isSelected ? "border-emerald-400 bg-white shadow-sm" : "border-white/70 bg-white/60 hover:bg-white"}`}
+                                                                >
+                                                                    <div className="flex items-start justify-between gap-3">
+                                                                        <div>
+                                                                            <p className="text-sm font-semibold text-slate-900">{option.title}</p>
+                                                                            <p className="mt-1 text-xs leading-relaxed text-slate-500">{option.description}</p>
+                                                                            {option.expiresAt && (
+                                                                                <p className="mt-1 text-[11px] font-medium text-amber-700">
+                                                                                    Expires {new Date(option.expiresAt).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                                                                                {option.badge ?? "Reward"}
+                                                                            </p>
+                                                                            <p className="mt-1 text-sm font-bold text-emerald-700">
+                                                                                Save up to PHP {Math.max(0, savings).toFixed(2)}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Payment Method */}
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-700 mb-2 ml-1">Payment Method</label>
@@ -720,6 +882,18 @@ export default function CartDrawer({
                                         <div className="flex justify-between items-center text-sm text-slate-500">
                                             <span>Shipping Fee</span>
                                             <span>PHP {shippingFee.toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    {rewardState.computed.discountAmount > 0 && (
+                                        <div className="flex justify-between items-center text-sm text-emerald-700">
+                                            <span>{rewardState.selectedOption?.title ?? "Voucher"} discount</span>
+                                            <span>-PHP {rewardState.computed.discountAmount.toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    {rewardState.computed.shippingDiscountAmount > 0 && (
+                                        <div className="flex justify-between items-center text-sm text-emerald-700">
+                                            <span>Shipping discount</span>
+                                            <span>-PHP {rewardState.computed.shippingDiscountAmount.toFixed(2)}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between items-center font-bold text-lg text-slate-900 border-t border-slate-100 pt-3 mt-2">

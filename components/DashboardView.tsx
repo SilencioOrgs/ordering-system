@@ -8,7 +8,8 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { useProducts } from "@/hooks/useProducts";
 import { useOrders } from "@/hooks/useOrders";
-import { useOrderMessages } from "@/hooks/useOrderMessages";
+import { useOrderMessages, type OrderMessage } from "@/hooks/useOrderMessages";
+import { useRewards } from "@/hooks/useRewards";
 import { useSupportChat } from "@/hooks/useSupportChat";
 import { useCustomOrderChat } from "@/hooks/useCustomOrderChat";
 import { categories, Product } from "@/lib/data";
@@ -26,6 +27,7 @@ import {
 import { useToast } from "@/components/shared/Toast";
 import LocationPicker from "./LocationPicker";
 import ProductModal from "./ProductModal";
+import RatingModal from "./RatingModal";
 
 const promoSlides = [
     "/images/590554498_1300306938783151_7499415934952873_n.jpg",
@@ -60,7 +62,7 @@ interface DashboardViewProps {
     onRedirectHandled?: () => void;
 }
 
-type DashboardTab = "home" | "orders" | "profile" | "notifications" | "chat" | "custom-order" | "settings";
+type DashboardTab = "home" | "orders" | "profile" | "rewards" | "notifications" | "chat" | "custom-order" | "settings";
 type ChatScreen = "inbox" | "support" | "custom-order";
 
 interface ProfileRecord {
@@ -103,8 +105,9 @@ function formatPeso(value: number) {
 export default function DashboardView({ user, cartCount, cartItems, onOpenCart, onAddToCart, onCheckoutCustomQuote, onLogout, shouldRedirectToOrders, onRedirectHandled }: DashboardViewProps) {
     const { toast } = useToast();
     const { products, loading: productsLoading } = useProducts();
-    const { orders, loading: ordersLoading } = useOrders(user);
+    const { orders, loading: ordersLoading, refetch: refetchOrders } = useOrders(user);
     const { messages, unreadCount: messagesUnread, markRead, markAllRead } = useOrderMessages(user);
+    const { summary: rewardsSummary, rankProgress, refetch: refetchRewards } = useRewards(user);
     const {
         threadId: supportThreadId,
         messages: supportMessages,
@@ -165,6 +168,7 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
     const [orderAnimKey, setOrderAnimKey] = useState(0);
     const [lastAddedProductId, setLastAddedProductId] = useState<string | null>(null);
     const [chatScreen, setChatScreen] = useState<ChatScreen>("inbox");
+    const [selectedRatingOrder, setSelectedRatingOrder] = useState<{ id: string; orderNumber: string } | null>(null);
     const hasLoadedSavedPlaceRef = useRef(false);
     const addToCartToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const supportChatScrollRef = useRef<HTMLDivElement | null>(null);
@@ -225,7 +229,12 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
 
             toast({
                 type: "info",
-                title: "New notification from Ate Ai",
+                title:
+                    message.message_type === "reward"
+                        ? "New reward update"
+                        : message.message_type === "rating_prompt"
+                            ? "Please rate your order"
+                            : message.title || "New notification from Ate Ai",
                 message: message.body,
             });
         }
@@ -476,6 +485,19 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
     const openCartFromToast = () => {
         setShowToast(false);
         onOpenCart();
+    };
+
+    const handleNotificationClick = async (messageId: string, messageType: OrderMessage["message_type"]) => {
+        await markRead(messageId);
+
+        if (messageType === "reward") {
+            setActiveTab("rewards");
+            return;
+        }
+
+        if (messageType === "rating_prompt") {
+            setActiveTab("orders");
+        }
     };
 
     useEffect(() => {
@@ -816,14 +838,15 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                                                     messages.slice(0, 6).map((message) => (
                                                         <div
                                                             key={message.id}
-                                                            onClick={() => void markRead(message.id)}
+                                                            onClick={() => void handleNotificationClick(message.id, message.message_type)}
                                                             className={`cursor-pointer border-b border-slate-50 p-4 transition-colors hover:bg-green-50/50 ${!message.read ? "bg-emerald-50/40" : ""}`}
                                                         >
                                                             <div className="mb-1 flex items-start justify-between">
                                                                 <h4 className="font-semibold text-sm text-slate-900">
                                                                     {message.message_type === "receipt" && "Order Delivered"}
                                                                     {message.message_type === "rating_prompt" && "Rate your order"}
-                                                                    {message.message_type === "general" && "Message from Ate Ai"}
+                                                                    {message.message_type === "reward" && "Reward unlocked"}
+                                                                    {message.message_type === "general" && message.title}
                                                                 </h4>
                                                                 <span className="text-[10px] text-slate-400 shrink-0">
                                                                     {new Date(message.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
@@ -898,7 +921,7 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                             { id: "chat", label: "Messages", icon: MessageCircle },
                             { id: "profile", label: "Account", icon: User, showDot: needsProfileCompletion },
                         ].map((item) => {
-                            const isActive = activeTab === item.id || (item.id === "profile" && activeTab === "settings");
+                            const isActive = activeTab === item.id || (item.id === "profile" && (activeTab === "settings" || activeTab === "rewards"));
                             return (
                                 <button
                                     key={item.id}
@@ -1184,6 +1207,28 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                                             <span className="font-bold text-emerald-700">PHP {Number(order.total).toFixed(2)}</span>
                                         </div>
 
+                                        <div className="mt-3 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
+                                            <div className="rounded-lg bg-slate-50 px-3 py-2">
+                                                <span className="font-semibold text-slate-700">Scheduled for:</span>{" "}
+                                                {order.scheduled_date
+                                                    ? new Date(`${order.scheduled_date}T00:00:00`).toLocaleDateString("en-PH", {
+                                                        month: "short",
+                                                        day: "numeric",
+                                                        year: "numeric",
+                                                    })
+                                                    : "Not set"}
+                                            </div>
+                                            <div className="rounded-lg bg-slate-50 px-3 py-2">
+                                                <span className="font-semibold text-slate-700">Points earned:</span>{" "}
+                                                {order.points_earned + order.bonus_points_earned}
+                                            </div>
+                                            {order.applied_reward_title && (
+                                                <div className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-700 sm:col-span-2">
+                                                    <span className="font-semibold">Reward applied:</span> {order.applied_reward_title}
+                                                </div>
+                                            )}
+                                        </div>
+
                                         {!isCancelled && (
                                             <div className="mt-4">
                                                 <div className="flex items-center gap-1">
@@ -1240,6 +1285,19 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                                                 {order.payment_method} payment is {order.payment_status === "Verified" ? "Paid (mock)" : order.payment_status}. Total: PHP {Number(order.total).toFixed(2)}
                                             </div>
                                         )}
+                                        {isDelivered && !order.rated && (
+                                            <button
+                                                onClick={() => setSelectedRatingOrder({ id: order.id, orderNumber: order.order_number })}
+                                                className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-800"
+                                            >
+                                                Rate this order
+                                            </button>
+                                        )}
+                                        {isDelivered && order.rated && (
+                                            <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+                                                Thanks for reviewing this order{order.rating ? ` · ${order.rating}/5 stars` : ""}.
+                                            </div>
+                                        )}
                                     </article>
                                 );
                             })}
@@ -1261,9 +1319,45 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                             </div>
                         </div>
 
+                        <div className="mb-2 rounded-none border-y border-emerald-100 bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-500 p-5 text-white shadow-sm md:rounded-lg md:border">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-100">Rewards</p>
+                                    <h3 className="mt-2 text-2xl font-bold">
+                                        {rankProgress.currentTier?.name ?? rewardsSummary?.loyaltyAccount?.currentRank ?? "Baguhan"}
+                                    </h3>
+                                    <p className="mt-1 text-sm text-emerald-50">
+                                        {rewardsSummary?.loyaltyAccount?.yearlyPoints ?? 0} points this year
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setActiveTab("rewards")}
+                                    className="rounded-full bg-white/15 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/25"
+                                >
+                                    Open rewards
+                                </button>
+                            </div>
+                            <div className="mt-4">
+                                <div className="h-2 overflow-hidden rounded-full bg-white/20">
+                                    <div
+                                        className="h-full rounded-full bg-white transition-all"
+                                        style={{ width: `${rankProgress.progressPercent}%` }}
+                                    />
+                                </div>
+                                <div className="mt-2 flex items-center justify-between text-xs text-emerald-50">
+                                    <span>{rankProgress.currentTier?.badge ?? "Baguhan"}</span>
+                                    <span>
+                                        {rankProgress.nextTier
+                                            ? `${rankProgress.pointsToNextRank} pts to ${rankProgress.nextTier.badge}`
+                                            : "Top loyalty rank reached"}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="bg-white shadow-sm w-full rounded-none md:rounded-lg overflow-hidden mb-2">
                             {[
-                                { icon: Star, label: "Rewards", action: () => { } },
+                                { icon: Star, label: "Rewards", action: () => setActiveTab("rewards") },
                                 { icon: Settings, label: "Settings", action: () => setActiveTab("settings"), showDot: needsProfileCompletion },
                                 { icon: HelpCircle, label: "Help Centre", action: () => { } },
                             ].map((item, idx) => (
@@ -1283,6 +1377,119 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                             className="bg-white p-4 py-4 md:py-5 mt-2 shadow-sm flex items-center justify-center cursor-pointer active:bg-slate-50 hover:bg-slate-50 rounded-none md:rounded-lg transition-colors border-y border-slate-100 md:border-none"
                         >
                             <span className="text-red-600 font-bold">Log Out</span>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {activeTab === "rewards" && (
+                <section className="mx-auto min-h-[calc(100vh-80px)] max-w-xl bg-slate-50 px-4 py-4 pb-28">
+                    <div className="overflow-hidden rounded-[28px] border border-emerald-100 bg-white shadow-sm">
+                        <div className="bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-500 px-5 py-5 text-white">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-100">Rewards wallet</p>
+                                    <h2 className="mt-2 text-2xl font-bold">
+                                        {rankProgress.currentTier?.name ?? rewardsSummary?.loyaltyAccount?.currentRank ?? "Baguhan"}
+                                    </h2>
+                                    <p className="mt-1 text-sm text-emerald-50">
+                                        {(rewardsSummary?.loyaltyAccount?.totalPoints ?? 0).toLocaleString()} lifetime points
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setActiveTab("profile")}
+                                    className="rounded-full bg-white/15 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/25"
+                                >
+                                    Back to account
+                                </button>
+                            </div>
+                            <div className="mt-4">
+                                <div className="h-2 overflow-hidden rounded-full bg-white/20">
+                                    <div
+                                        className="h-full rounded-full bg-white transition-all"
+                                        style={{ width: `${rankProgress.progressPercent}%` }}
+                                    />
+                                </div>
+                                <div className="mt-2 flex items-center justify-between text-xs text-emerald-50">
+                                    <span>{rewardsSummary?.loyaltyAccount?.yearlyPoints ?? 0} yearly points</span>
+                                    <span>
+                                        {rankProgress.nextTier
+                                            ? `${rankProgress.pointsToNextRank} pts to ${rankProgress.nextTier.badge}`
+                                            : "Diamond tier unlocked"}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-b border-slate-100 px-5 py-4">
+                            <div className="grid grid-cols-3 gap-3">
+                                <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Active vouchers</p>
+                                    <p className="mt-1 text-xl font-bold text-slate-900">{rewardsSummary?.activeVouchers.length ?? 0}</p>
+                                </div>
+                                <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Streak</p>
+                                    <p className="mt-1 text-xl font-bold text-slate-900">{rewardsSummary?.loyaltyAccount?.streakWeeks ?? 0}w</p>
+                                </div>
+                                <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Delivered</p>
+                                    <p className="mt-1 text-xl font-bold text-slate-900">{rewardsSummary?.loyaltyAccount?.deliveredOrders ?? 0}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-b border-slate-100 px-5 py-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-slate-900">Available vouchers</h3>
+                                <span className="text-xs font-medium text-slate-400">Use these at checkout</span>
+                            </div>
+                            <div className="mt-3 space-y-2">
+                                {(rewardsSummary?.activeVouchers.length ?? 0) === 0 ? (
+                                    <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-4 text-sm text-slate-500">
+                                        No saved vouchers yet. Keep ordering to unlock rank-up, streak, and comeback perks.
+                                    </div>
+                                ) : (
+                                    rewardsSummary?.activeVouchers.map((voucher) => (
+                                        <div key={voucher.id} className="rounded-2xl border border-emerald-100 bg-emerald-50/50 px-4 py-4">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-slate-900">{voucher.title}</p>
+                                                    <p className="mt-1 text-xs leading-relaxed text-slate-500">{voucher.description}</p>
+                                                </div>
+                                                <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                                                    {voucher.percentOff ? `${voucher.percentOff}% OFF` : voucher.freeShipping ? "FREE SHIP" : "VOUCHER"}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="px-5 py-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-slate-900">Recent points activity</h3>
+                                <span className="text-xs font-medium text-slate-400">Newest first</span>
+                            </div>
+                            <div className="mt-3 space-y-2">
+                                {(rewardsSummary?.recentTransactions.length ?? 0) === 0 ? (
+                                    <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-4 text-sm text-slate-500">
+                                        Your rewards activity will appear here after your next delivered order.
+                                    </div>
+                                ) : (
+                                    rewardsSummary?.recentTransactions.map((entry) => (
+                                        <div key={entry.id} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-900">{entry.description}</p>
+                                                <p className="mt-1 text-xs text-slate-400">
+                                                    {new Date(entry.createdAt).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
+                                                </p>
+                                            </div>
+                                            <span className="text-sm font-bold text-emerald-700">+{entry.points}</span>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -1632,18 +1839,19 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                             {messages.map((message) => (
                                 <div
                                     key={message.id}
-                                    onClick={() => void markRead(message.id)}
+                                    onClick={() => void handleNotificationClick(message.id, message.message_type)}
                                     className={`cursor-pointer p-4 transition-colors hover:bg-slate-50 ${!message.read ? "bg-emerald-50/40" : "bg-white"}`}
                                 >
                                     <div className="mb-1 flex items-start justify-between">
                                         <div className="flex items-center gap-2">
                                             <span className="text-base">
-                                                {message.message_type === "receipt" ? "R" : message.message_type === "rating_prompt" ? "S" : "M"}
+                                                {message.message_type === "receipt" ? "R" : message.message_type === "rating_prompt" ? "S" : message.message_type === "reward" ? "V" : "M"}
                                             </span>
                                             <h4 className={`text-[14px] text-slate-900 ${!message.read ? "font-bold" : "font-semibold"}`}>
                                                 {message.message_type === "receipt" && "Order Delivered"}
                                                 {message.message_type === "rating_prompt" && "How was your order?"}
-                                                {message.message_type === "general" && "Message from Ate Ai"}
+                                                {message.message_type === "reward" && message.title}
+                                                {message.message_type === "general" && message.title}
                                                 {!message.read && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-emerald-500 align-middle" />}
                                             </h4>
                                         </div>
@@ -2064,7 +2272,7 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                         { id: "chat" as DashboardTab, label: "Messages", icon: MessageCircle },
                         { id: "profile" as DashboardTab, label: "Account", icon: User, showDot: needsProfileCompletion },
                     ].map((tab) => {
-                        const isActive = activeTab === tab.id || (tab.id === "profile" && activeTab === "settings");
+                        const isActive = activeTab === tab.id || (tab.id === "profile" && (activeTab === "settings" || activeTab === "rewards"));
                         return (
                             <motion.button
                                 key={tab.id}
@@ -2180,6 +2388,23 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                     </div>
                 )}
             </AnimatePresence>
+
+            <RatingModal
+                orderId={selectedRatingOrder?.id ?? ""}
+                orderNumber={selectedRatingOrder?.orderNumber ?? ""}
+                isOpen={Boolean(selectedRatingOrder)}
+                onClose={() => setSelectedRatingOrder(null)}
+                onSubmitted={() => {
+                    setSelectedRatingOrder(null);
+                    void refetchOrders();
+                    void refetchRewards();
+                    toast({
+                        type: "success",
+                        title: "Review submitted",
+                        message: "Thanks for sharing your feedback. Your reward points were added to your account.",
+                    });
+                }}
+            />
 
             {/* Map Simulation Modal */}
             <AnimatePresence>

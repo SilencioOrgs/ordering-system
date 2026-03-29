@@ -21,8 +21,16 @@ type OrderRow = {
   delivery_address: string | null;
   subtotal: number;
   delivery_fee: number;
+  discount_amount: number | null;
+  shipping_discount_amount: number | null;
   total: number | null;
   scheduled_date: string | null;
+  applied_reward_title: string | null;
+  points_earned: number | null;
+  bonus_points_earned: number | null;
+  rated: boolean | null;
+  rating: number | null;
+  rating_note: string | null;
   created_at: string;
   order_items: OrderItemRow[] | null;
 };
@@ -37,8 +45,16 @@ export interface OrderWithItems {
   delivery_address: string | null;
   subtotal: number;
   delivery_fee: number;
+  discount_amount: number;
+  shipping_discount_amount: number;
   total: number;
   scheduled_date: string | null;
+  applied_reward_title: string | null;
+  points_earned: number;
+  bonus_points_earned: number;
+  rated: boolean;
+  rating: number | null;
+  rating_note: string | null;
   created_at: string;
   items: Array<{
     id: string;
@@ -73,8 +89,16 @@ export function useOrders(user: User | null) {
         delivery_address,
         subtotal,
         delivery_fee,
+        discount_amount,
+        shipping_discount_amount,
         total,
         scheduled_date,
+        applied_reward_title,
+        points_earned,
+        bonus_points_earned,
+        rated,
+        rating,
+        rating_note,
         created_at,
         order_items(id, name, quantity, price)
       `
@@ -97,11 +121,19 @@ export function useOrders(user: User | null) {
       delivery_address: order.delivery_address,
       subtotal: Number(order.subtotal ?? 0),
       delivery_fee: Number(order.delivery_fee ?? 0),
+      discount_amount: Number(order.discount_amount ?? 0),
+      shipping_discount_amount: Number(order.shipping_discount_amount ?? 0),
       total:
         order.total !== null && order.total !== undefined
           ? Number(order.total)
           : Number(order.subtotal ?? 0) + Number(order.delivery_fee ?? 0),
       scheduled_date: order.scheduled_date,
+      applied_reward_title: order.applied_reward_title,
+      points_earned: Number(order.points_earned ?? 0),
+      bonus_points_earned: Number(order.bonus_points_earned ?? 0),
+      rated: Boolean(order.rated),
+      rating: order.rating === null ? null : Number(order.rating),
+      rating_note: order.rating_note,
       created_at: order.created_at,
       items: (order.order_items ?? []).map((item) => ({
         id: item.id,

@@ -1,4 +1,5 @@
 import type { PaymentReceiptExtractionResult } from "@/lib/payments/receiptTypes";
+import type { RewardSelection } from "@/lib/rewards/types";
 
 export type PlaceOrderCartItem = {
   product_id: string;
@@ -30,6 +31,7 @@ export type PlaceOrderPayload = {
   receiptExtraction?: PaymentReceiptExtractionResult | null;
   paymentMethod: "COD" | "GCash" | "Maya";
   scheduledDate: string | null;
+  rewardSelection?: RewardSelection;
   customerName: string;
   customerPhone: string;
 };

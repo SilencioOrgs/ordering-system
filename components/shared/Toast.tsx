@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 type ToastType = "success" | "error" | "warning" | "info";
@@ -17,10 +17,37 @@ type ToastItem = ToastPayload & { id: string };
 const ToastContext = createContext<{ push: (payload: ToastPayload) => void } | null>(null);
 
 const styleMap: Record<ToastType, string> = {
-  success: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  error: "border-red-200 bg-red-50 text-red-800",
-  warning: "border-amber-200 bg-amber-50 text-amber-800",
-  info: "border-blue-200 bg-blue-50 text-blue-800",
+  success: "border-emerald-200 bg-white text-slate-900 shadow-[0_18px_45px_rgba(5,150,105,0.16)]",
+  error: "border-red-200 bg-white text-slate-900 shadow-[0_18px_45px_rgba(239,68,68,0.16)]",
+  warning: "border-amber-200 bg-white text-slate-900 shadow-[0_18px_45px_rgba(245,158,11,0.16)]",
+  info: "border-sky-200 bg-white text-slate-900 shadow-[0_18px_45px_rgba(14,165,233,0.16)]",
+};
+
+const iconMap: Record<ToastType, { icon: typeof CheckCircle2; badge: string; badgeClass: string; iconClass: string }> = {
+  success: {
+    icon: CheckCircle2,
+    badge: "Success",
+    badgeClass: "bg-emerald-50 text-emerald-700",
+    iconClass: "text-emerald-600",
+  },
+  error: {
+    icon: XCircle,
+    badge: "Issue",
+    badgeClass: "bg-red-50 text-red-700",
+    iconClass: "text-red-600",
+  },
+  warning: {
+    icon: AlertTriangle,
+    badge: "Heads up",
+    badgeClass: "bg-amber-50 text-amber-700",
+    iconClass: "text-amber-600",
+  },
+  info: {
+    icon: Info,
+    badge: "Update",
+    badgeClass: "bg-sky-50 text-sky-700",
+    iconClass: "text-sky-600",
+  },
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -40,44 +67,72 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo(() => ({ push }), [push]);
-  const stackedItems = [...items].reverse().slice(0, 3);
+  const stackedItems = [...items].slice(-4).reverse();
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed left-1/2 top-4 z-[120] w-[min(calc(100vw-1.5rem),26rem)] -translate-x-1/2 sm:top-5">
+      <div className="pointer-events-none fixed inset-x-0 top-4 z-[120] flex justify-center px-3 sm:top-5 sm:justify-end sm:px-5">
         <AnimatePresence>
           {stackedItems.map((item, index) => (
-            <motion.div
+            <ToastCard
               key={item.id}
-              initial={{ opacity: 0, y: -20, scale: 0.96 }}
-              animate={{
-                opacity: Math.max(1 - index * 0.14, 0.6),
-                y: index === 0 ? 0 : -(index * 14),
-                x: index * 4,
-                scale: 1 - index * 0.025,
-              }}
-              exit={{ opacity: 0, y: -20, scale: 0.96 }}
-              transition={{ type: "spring", stiffness: 260, damping: 24 }}
-              style={{ zIndex: stackedItems.length - index }}
-              className={`pointer-events-auto w-full flex items-start gap-3 rounded-2xl border p-3 shadow-lg ${index > 0 ? "-mt-14" : ""} ${styleMap[item.type]}`}
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">{item.title}</p>
-                {item.message ? <p className="mt-1 text-xs">{item.message}</p> : null}
-              </div>
-              <button
-                aria-label="Close notification"
-                className="rounded-lg p-1 hover:bg-white/60"
-                onClick={() => remove(item.id)}
-              >
-                <XCircle className="h-4 w-4" />
-              </button>
-            </motion.div>
+              item={item}
+              index={index}
+              remove={remove}
+            />
           ))}
         </AnimatePresence>
       </div>
     </ToastContext.Provider>
+  );
+}
+
+function ToastCard({
+  item,
+  index,
+  remove,
+}: {
+  item: ToastItem;
+  index: number;
+  remove: (id: string) => void;
+}) {
+  const meta = iconMap[item.type];
+  const Icon = meta.icon;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -18, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -12, scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 240, damping: 26 }}
+      className={`pointer-events-auto mt-3 w-[min(calc(100vw-1.5rem),25rem)] rounded-3xl border p-4 ${styleMap[item.type]}`}
+      style={{ zIndex: 120 - index }}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`mt-0.5 rounded-2xl bg-slate-50 p-2.5 ${meta.iconClass}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${meta.badgeClass}`}>
+                {meta.badge}
+              </span>
+              <p className="mt-2 text-sm font-semibold leading-snug">{item.title}</p>
+            </div>
+            <button
+              aria-label="Close notification"
+              className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+              onClick={() => remove(item.id)}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          {item.message ? <p className="mt-2 text-xs leading-relaxed text-slate-500">{item.message}</p> : null}
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
