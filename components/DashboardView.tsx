@@ -102,6 +102,55 @@ function formatPeso(value: number) {
     }).format(value);
 }
 
+function formatNotificationDate(value: string) {
+    return new Intl.DateTimeFormat("en-PH", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+    }).format(new Date(value));
+}
+
+function getNotificationMeta(message: OrderMessage) {
+    if (message.message_type === "receipt") {
+        return {
+            title: message.title || "Order update",
+            badge: "Order",
+            badgeClass: "bg-sky-100 text-sky-700",
+            icon: ReceiptText,
+            iconClass: "bg-sky-50 text-sky-700",
+        };
+    }
+
+    if (message.message_type === "rating_prompt") {
+        return {
+            title: message.title || "How was your order?",
+            badge: "Review",
+            badgeClass: "bg-violet-100 text-violet-700",
+            icon: PencilLine,
+            iconClass: "bg-violet-50 text-violet-700",
+        };
+    }
+
+    if (message.message_type === "reward") {
+        return {
+            title: message.title || "Reward unlocked",
+            badge: "Voucher",
+            badgeClass: "bg-orange-100 text-orange-700",
+            icon: Star,
+            iconClass: "bg-orange-50 text-orange-700",
+        };
+    }
+
+    return {
+        title: message.title || "New update",
+        badge: "Notice",
+        badgeClass: "bg-slate-200 text-slate-700",
+        icon: Bell,
+        iconClass: "bg-slate-100 text-slate-700",
+    };
+}
+
 export default function DashboardView({ user, cartCount, cartItems, onOpenCart, onAddToCart, onCheckoutCustomQuote, onLogout, shouldRedirectToOrders, onRedirectHandled }: DashboardViewProps) {
     const { toast } = useToast();
     const { products, loading: productsLoading } = useProducts();
@@ -157,12 +206,6 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
     const [customQuoteQuantity, setCustomQuoteQuantity] = useState("1");
     const [customQuoteDeliveryDate, setCustomQuoteDeliveryDate] = useState("");
     const [customQuoteNotes, setCustomQuoteNotes] = useState("");
-    const seenNotificationIdsRef = useRef<Set<string>>(new Set());
-    const hasHydratedNotificationsRef = useRef(false);
-    const seenSupportMessageIdsRef = useRef<Set<string>>(new Set());
-    const hasHydratedSupportMessagesRef = useRef(false);
-    const seenCustomOrderMessageIdsRef = useRef<Set<string>>(new Set());
-    const hasHydratedCustomOrderMessagesRef = useRef(false);
     const [showCustomQuoteForm, setShowCustomQuoteForm] = useState(false);
     const [submittingCustomQuote, setSubmittingCustomQuote] = useState(false);
     const [orderAnimKey, setOrderAnimKey] = useState(0);
@@ -214,77 +257,6 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
         }, 3000);
         return () => clearInterval(interval);
     }, []);
-
-    useEffect(() => {
-        const nextIds = new Set(messages.map((message) => message.id));
-
-        if (!hasHydratedNotificationsRef.current) {
-            seenNotificationIdsRef.current = nextIds;
-            hasHydratedNotificationsRef.current = true;
-            return;
-        }
-
-        for (const message of messages) {
-            if (message.read || seenNotificationIdsRef.current.has(message.id)) continue;
-
-            toast({
-                type: "info",
-                title:
-                    message.message_type === "reward"
-                        ? "New reward update"
-                        : message.message_type === "rating_prompt"
-                            ? "Please rate your order"
-                            : message.title || "New notification from Ate Ai",
-                message: message.body,
-            });
-        }
-
-        seenNotificationIdsRef.current = nextIds;
-    }, [messages, toast]);
-
-    useEffect(() => {
-        const nextIds = new Set(supportMessages.map((message) => message.id));
-
-        if (!hasHydratedSupportMessagesRef.current) {
-            seenSupportMessageIdsRef.current = nextIds;
-            hasHydratedSupportMessagesRef.current = true;
-            return;
-        }
-
-        for (const message of supportMessages) {
-            if (message.role !== "store" || seenSupportMessageIdsRef.current.has(message.id)) continue;
-
-            toast({
-                type: "info",
-                title: "New support reply",
-                message: message.text,
-            });
-        }
-
-        seenSupportMessageIdsRef.current = nextIds;
-    }, [supportMessages, toast]);
-
-    useEffect(() => {
-        const nextIds = new Set(customOrderMessages.map((message) => message.id));
-
-        if (!hasHydratedCustomOrderMessagesRef.current) {
-            seenCustomOrderMessageIdsRef.current = nextIds;
-            hasHydratedCustomOrderMessagesRef.current = true;
-            return;
-        }
-
-        for (const message of customOrderMessages) {
-            if (message.role !== "store" || seenCustomOrderMessageIdsRef.current.has(message.id)) continue;
-
-            toast({
-                type: "info",
-                title: "New custom order update",
-                message: message.text,
-            });
-        }
-
-        seenCustomOrderMessageIdsRef.current = nextIds;
-    }, [customOrderMessages, toast]);
 
     useEffect(() => {
         if (!user?.id) return;
@@ -487,15 +459,16 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
         onOpenCart();
     };
 
-    const handleNotificationClick = async (messageId: string, messageType: OrderMessage["message_type"]) => {
-        await markRead(messageId);
+    const handleNotificationClick = async (message: OrderMessage) => {
+        await markRead(message.id);
+        setShowNotifications(false);
 
-        if (messageType === "reward") {
+        if (message.message_type === "reward") {
             setActiveTab("rewards");
             return;
         }
 
-        if (messageType === "rating_prompt") {
+        if (message.message_type === "rating_prompt" || message.order_id) {
             setActiveTab("orders");
         }
     };
@@ -823,36 +796,86 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            className="hidden lg:block absolute -right-16 sm:right-0 top-16 w-[calc(100vw-32px)] sm:w-80 bg-white rounded-lg shadow-xl z-50 border border-slate-100 overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.16)] text-left"
+                                            className="hidden lg:block absolute right-0 top-16 z-50 w-[min(calc(100vw-1rem),22rem)] overflow-hidden rounded-[28px] border border-slate-200 bg-white text-left shadow-[0_20px_60px_rgba(15,23,42,0.18)]"
                                         >
-                                            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                                                <h3 className="font-bold text-slate-900">Notifications</h3>
-                                                <button onClick={() => setShowNotifications(false)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors">
-                                                    <X className="w-5 h-5" />
-                                                </button>
+                                            <div className="border-b border-slate-100 bg-slate-50/90 px-4 py-4">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <h3 className="font-bold text-slate-900">Notifications</h3>
+                                                            {messagesUnread > 0 && (
+                                                                <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-700">
+                                                                    {messagesUnread} unread
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="mt-1 text-xs text-slate-500">Updates stay here now instead of showing popup cards.</p>
+                                                    </div>
+                                                    <button onClick={() => setShowNotifications(false)} className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-white hover:text-slate-600">
+                                                        <X className="w-5 h-5" />
+                                                    </button>
+                                                </div>
+                                                {messagesUnread > 0 && (
+                                                    <button
+                                                        onClick={() => void markAllRead()}
+                                                        className="mt-3 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-orange-200 hover:text-orange-700"
+                                                    >
+                                                        Mark all as read
+                                                    </button>
+                                                )}
                                             </div>
-                                            <div className="max-h-[350px] overflow-y-auto">
+                                            <div className="max-h-[26rem] space-y-2 overflow-y-auto bg-slate-50/60 p-3">
                                                 {messages.length === 0 ? (
-                                                    <div className="p-6 text-center text-sm text-slate-400">No notifications yet.</div>
+                                                    <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-400">
+                                                        No notifications yet.
+                                                    </div>
                                                 ) : (
                                                     messages.slice(0, 6).map((message) => (
                                                         <div
                                                             key={message.id}
-                                                            onClick={() => void handleNotificationClick(message.id, message.message_type)}
-                                                            className={`cursor-pointer border-b border-slate-50 p-4 transition-colors hover:bg-green-50/50 ${!message.read ? "bg-emerald-50/40" : ""}`}
+                                                            onClick={() => void handleNotificationClick(message)}
+                                                            className={`cursor-pointer rounded-2xl border p-3 transition-colors ${message.read ? "border-slate-200 bg-white hover:border-slate-300" : "border-orange-200 bg-orange-50/70 hover:border-orange-300"}`}
                                                         >
-                                                            <div className="mb-1 flex items-start justify-between">
-                                                                <h4 className="font-semibold text-sm text-slate-900">
-                                                                    {message.message_type === "receipt" && "Order Delivered"}
-                                                                    {message.message_type === "rating_prompt" && "Rate your order"}
-                                                                    {message.message_type === "reward" && "Reward unlocked"}
-                                                                    {message.message_type === "general" && message.title}
-                                                                </h4>
-                                                                <span className="text-[10px] text-slate-400 shrink-0">
-                                                                    {new Date(message.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-xs text-slate-500 font-medium leading-relaxed line-clamp-2 whitespace-pre-line">{message.body}</p>
+                                                            {(() => {
+                                                                const meta = getNotificationMeta(message);
+                                                                const Icon = meta.icon;
+
+                                                                return (
+                                                                    <div className="flex items-start gap-3">
+                                                                        <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${meta.iconClass}`}>
+                                                                            <Icon className="h-4 w-4" />
+                                                                        </div>
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <div className="flex items-start justify-between gap-3">
+                                                                                <div className="min-w-0">
+                                                                                    <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${meta.badgeClass}`}>
+                                                                                        {meta.badge}
+                                                                                    </span>
+                                                                                    <p className="mt-2 text-sm font-semibold leading-snug text-slate-900">{meta.title}</p>
+                                                                                </div>
+                                                                                {!message.read && <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-orange-500" />}
+                                                                            </div>
+                                                                            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500 whitespace-pre-line">{message.body}</p>
+                                                                            <div className="mt-3 flex items-center justify-between gap-3">
+                                                                                <span className="text-[11px] font-medium text-slate-400">{formatNotificationDate(message.created_at)}</span>
+                                                                                {!message.read ? (
+                                                                                    <button
+                                                                                        onClick={(event) => {
+                                                                                            event.stopPropagation();
+                                                                                            void markRead(message.id);
+                                                                                        }}
+                                                                                        className="text-[11px] font-semibold text-orange-700 hover:underline"
+                                                                                    >
+                                                                                        Mark read
+                                                                                    </button>
+                                                                                ) : (
+                                                                                    <span className="text-[11px] font-medium text-slate-400">Read</span>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     ))
                                                 )}
@@ -862,9 +885,9 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
                                                     setShowNotifications(false);
                                                     setActiveTab("notifications");
                                                 }}
-                                                className="p-3 bg-slate-50 text-center border-t border-slate-100 cursor-pointer hover:bg-slate-100 transition-colors"
+                                                className="cursor-pointer border-t border-slate-100 bg-white px-4 py-3 text-center transition-colors hover:bg-slate-50"
                                             >
-                                                <span className="text-sm font-bold text-emerald-700">View All Activities</span>
+                                                <span className="text-sm font-bold text-orange-700">View all notifications</span>
                                             </div>
                                         </motion.div>
                                     </>
@@ -1817,60 +1840,87 @@ export default function DashboardView({ user, cartCount, cartItems, onOpenCart, 
             )}
 
             {activeTab === "notifications" && (
-                <section className="max-w-xl mx-auto bg-slate-50 min-h-screen pt-0 pb-28">
-                    <div className="bg-white p-4 border-b border-slate-100 flex items-center justify-between gap-3 z-10 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <Bell className="w-5 h-5 text-emerald-700" />
-                            <h2 className="text-lg font-bold text-slate-900">Notifications</h2>
+                <section className="mx-auto min-h-[calc(100dvh-4rem)] w-full max-w-xl bg-slate-50 pb-24">
+                    <div className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 px-4 py-4 shadow-sm backdrop-blur">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <div className="flex items-center gap-3">
+                                    <Bell className="w-5 h-5 text-orange-600" />
+                                    <h2 className="text-lg font-bold text-slate-900">Notifications</h2>
+                                </div>
+                                <p className="mt-1 text-sm text-slate-500">Track order updates, rewards, and reminders here.</p>
+                            </div>
+                            {messagesUnread > 0 && (
+                                <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-semibold text-orange-700">
+                                    {messagesUnread} unread
+                                </span>
+                            )}
                         </div>
                         {messagesUnread > 0 && (
-                            <button onClick={() => void markAllRead()} className="text-xs font-semibold text-emerald-700 hover:underline">
-                                Mark all read
+                            <button
+                                onClick={() => void markAllRead()}
+                                className="mt-3 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700"
+                            >
+                                Mark all as read
                             </button>
                         )}
                     </div>
                     {messages.length === 0 ? (
-                        <div className="text-center py-20 text-slate-400">
-                            <Bell className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                            <p className="font-semibold">No notifications yet</p>
+                        <div className="px-4 py-16 text-center text-slate-400">
+                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm">
+                                <Bell className="w-7 h-7 opacity-40" />
+                            </div>
+                            <p className="mt-4 font-semibold">No notifications yet</p>
+                            <p className="mt-1 text-sm">New updates will show up here instead of as popup cards.</p>
                         </div>
                     ) : (
-                        <div className="divide-y divide-slate-100">
+                        <div className="space-y-3 px-3 py-4 sm:px-4">
                             {messages.map((message) => (
                                 <div
                                     key={message.id}
-                                    onClick={() => void handleNotificationClick(message.id, message.message_type)}
-                                    className={`cursor-pointer p-4 transition-colors hover:bg-slate-50 ${!message.read ? "bg-emerald-50/40" : "bg-white"}`}
+                                    onClick={() => void handleNotificationClick(message)}
+                                    className={`cursor-pointer rounded-3xl border p-4 transition-colors ${message.read ? "border-slate-200 bg-white hover:border-slate-300" : "border-orange-200 bg-orange-50/70 shadow-[0_10px_30px_rgba(249,115,22,0.12)] hover:border-orange-300"}`}
                                 >
-                                    <div className="mb-1 flex items-start justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-base">
-                                                {message.message_type === "receipt" ? "R" : message.message_type === "rating_prompt" ? "S" : message.message_type === "reward" ? "V" : "M"}
-                                            </span>
-                                            <h4 className={`text-[14px] text-slate-900 ${!message.read ? "font-bold" : "font-semibold"}`}>
-                                                {message.message_type === "receipt" && "Order Delivered"}
-                                                {message.message_type === "rating_prompt" && "How was your order?"}
-                                                {message.message_type === "reward" && message.title}
-                                                {message.message_type === "general" && message.title}
-                                                {!message.read && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-emerald-500 align-middle" />}
-                                            </h4>
-                                        </div>
-                                        <span className="text-[10px] text-slate-400 shrink-0">
-                                            {new Date(message.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{message.body}</p>
-                                    {message.message_type === "rating_prompt" && !message.read && (
-                                        <button
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                void markRead(message.id);
-                                            }}
-                                            className="mt-2 text-xs font-bold text-emerald-700 hover:underline"
-                                        >
-                                            Mark as read
-                                        </button>
-                                    )}
+                                    {(() => {
+                                        const meta = getNotificationMeta(message);
+                                        const Icon = meta.icon;
+
+                                        return (
+                                            <div className="flex items-start gap-3">
+                                                <div className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${meta.iconClass}`}>
+                                                    <Icon className="h-5 w-5" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${meta.badgeClass}`}>
+                                                                {meta.badge}
+                                                            </span>
+                                                            <p className="mt-2 text-sm font-semibold leading-snug text-slate-900">{meta.title}</p>
+                                                        </div>
+                                                        {!message.read && <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-orange-500" />}
+                                                    </div>
+                                                    <p className="mt-2 text-sm leading-relaxed text-slate-600 whitespace-pre-line">{message.body}</p>
+                                                    <div className="mt-3 flex items-center justify-between gap-3">
+                                                        <span className="text-[11px] font-medium text-slate-400">{formatNotificationDate(message.created_at)}</span>
+                                                        {!message.read ? (
+                                                            <button
+                                                                onClick={(event) => {
+                                                                    event.stopPropagation();
+                                                                    void markRead(message.id);
+                                                                }}
+                                                                className="text-xs font-semibold text-orange-700 hover:underline"
+                                                            >
+                                                                Mark as read
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-[11px] font-medium text-slate-400">Read</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             ))}
                         </div>

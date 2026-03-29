@@ -724,18 +724,18 @@ export default function CartDrawer({
                                         )}
 
                                         {hasCheckoutItems && (
-                                            <div className="space-y-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+                                            <div className="space-y-3 rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-4">
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div>
-                                                        <p className="text-sm font-semibold text-emerald-900">Rewards & vouchers</p>
-                                                        <p className="mt-1 text-xs leading-relaxed text-emerald-800/80">
+                                                        <p className="text-sm font-semibold text-orange-950">Rewards & vouchers</p>
+                                                        <p className="mt-1 text-xs leading-relaxed text-orange-800/80">
                                                             {rewardState.nextMilestone
                                                                 ? `Add PHP ${rewardState.nextMilestone.amountLeft.toFixed(2)} more to unlock ${rewardState.nextMilestone.rule.label}.`
                                                                 : "You already unlocked the top cart milestone. Choose the best reward below."}
                                                         </p>
                                                     </div>
                                                     {rewardState.selectedOption && (
-                                                        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-emerald-700 shadow-sm">
+                                                        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-orange-700 shadow-sm">
                                                             {rewardState.selectedOption.badge ?? "Applied"}
                                                         </span>
                                                     )}
@@ -745,7 +745,7 @@ export default function CartDrawer({
                                                     <div>
                                                         <div className="h-2 overflow-hidden rounded-full bg-white/80">
                                                             <div
-                                                                className="h-full rounded-full bg-emerald-600 transition-all"
+                                                                className="h-full rounded-full bg-orange-500 transition-all"
                                                                 style={{
                                                                     width: `${Math.min(
                                                                         100,
@@ -754,7 +754,7 @@ export default function CartDrawer({
                                                                 }}
                                                             />
                                                         </div>
-                                                        <div className="mt-2 flex items-center justify-between text-[11px] font-medium text-emerald-800/80">
+                                                        <div className="mt-2 flex items-center justify-between text-[11px] font-medium text-orange-800/80">
                                                             <span>Cart total: PHP {totalAmount.toFixed(2)}</span>
                                                             <span>Target: PHP {rewardState.nextMilestone.rule.minOrderAmount.toFixed(2)}</span>
                                                         </div>
@@ -768,14 +768,14 @@ export default function CartDrawer({
                                                             setDisableReward(true);
                                                             setSelectedReward(null);
                                                         }}
-                                                        className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${isNoRewardSelected ? "border-emerald-400 bg-white shadow-sm" : "border-white/70 bg-white/60 hover:bg-white"}`}
+                                                        className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${isNoRewardSelected ? "border-orange-400 bg-white shadow-sm" : "border-orange-100 bg-white/80 hover:bg-white"}`}
                                                     >
                                                         <p className="text-sm font-semibold text-slate-900">No voucher</p>
                                                         <p className="mt-1 text-xs text-slate-500">Keep this order at the regular total.</p>
                                                     </button>
 
                                                     {rewardState.eligibleOptions.length === 0 ? (
-                                                        <div className="rounded-xl border border-dashed border-emerald-200 bg-white/70 px-4 py-3 text-xs text-slate-500">
+                                                        <div className="rounded-xl border border-dashed border-orange-200 bg-white/80 px-4 py-3 text-xs text-slate-500">
                                                             {rewardsLoading
                                                                 ? "Loading available rewards..."
                                                                 : "No eligible vouchers yet. Add more items or keep ordering to unlock perks."}
@@ -797,7 +797,7 @@ export default function CartDrawer({
                                                                         setDisableReward(false);
                                                                         setSelectedReward({ source: option.source, id: option.id });
                                                                     }}
-                                                                    className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${isSelected ? "border-emerald-400 bg-white shadow-sm" : "border-white/70 bg-white/60 hover:bg-white"}`}
+                                                                    className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${isSelected ? "border-orange-400 bg-white shadow-sm" : "border-orange-100 bg-white/80 hover:bg-white"}`}
                                                                 >
                                                                     <div className="flex items-start justify-between gap-3">
                                                                         <div>
@@ -810,10 +810,10 @@ export default function CartDrawer({
                                                                             )}
                                                                         </div>
                                                                         <div className="text-right">
-                                                                            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                                                                            <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
                                                                                 {option.badge ?? "Reward"}
                                                                             </p>
-                                                                            <p className="mt-1 text-sm font-bold text-emerald-700">
+                                                                            <p className="mt-1 text-sm font-bold text-orange-700">
                                                                                 Save up to PHP {Math.max(0, savings).toFixed(2)}
                                                                             </p>
                                                                         </div>
