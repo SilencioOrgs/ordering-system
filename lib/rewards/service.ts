@@ -36,11 +36,19 @@ type OrderRewardRow = {
 };
 
 type StoreSettingsRow = {
-  store_name: unknown;
-  contact_number: unknown;
-  store_address: unknown;
-  delivery_fee: unknown;
-  advance_notice_days: unknown;
+  store_name?: unknown;
+  contact_number?: unknown;
+  store_address?: unknown;
+  delivery_fee?: unknown;
+  advance_notice_days?: unknown;
+  gcash_account_name?: unknown;
+  gcash_account_number?: unknown;
+  gcash_qr_url?: unknown;
+  gcash_qr_public_id?: unknown;
+  maya_account_name?: unknown;
+  maya_account_number?: unknown;
+  maya_qr_url?: unknown;
+  maya_qr_public_id?: unknown;
 };
 
 type RewardSettingsRow = {
@@ -141,7 +149,7 @@ export async function loadStoreAndRewardSettings(supabase: SupabaseClientLike): 
   const [storeResponse, rewardResponse] = await Promise.all([
     supabase
       .from("store_settings")
-      .select("store_name, contact_number, store_address, delivery_fee, advance_notice_days")
+      .select("*")
       .limit(1)
       .maybeSingle(),
     supabase
@@ -184,12 +192,20 @@ export async function loadStoreAndRewardSettings(supabase: SupabaseClientLike): 
 
   const storeSettings = normalizeStoreSettings(
     storeRow
-      ? {
+        ? {
           storeName: storeRow.store_name,
           contactNumber: storeRow.contact_number,
           storeAddress: storeRow.store_address,
           deliveryFee: storeRow.delivery_fee,
           advanceNoticeDays: storeRow.advance_notice_days,
+          gcashAccountName: storeRow.gcash_account_name,
+          gcashAccountNumber: storeRow.gcash_account_number,
+          gcashQrUrl: storeRow.gcash_qr_url,
+          gcashQrPublicId: storeRow.gcash_qr_public_id,
+          mayaAccountName: storeRow.maya_account_name,
+          mayaAccountNumber: storeRow.maya_account_number,
+          mayaQrUrl: storeRow.maya_qr_url,
+          mayaQrPublicId: storeRow.maya_qr_public_id,
         }
       : getDefaultStoreSettings()
   );

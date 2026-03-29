@@ -113,6 +113,40 @@ export default function CartDrawer({
     const hasSavedAddressOptions = savedAddressList.length > 0;
     const minimumScheduleDate = getMinimumScheduledDate(storeSettings.advanceNoticeDays);
     const isNoRewardSelected = disableReward || (selectedReward === null && !rewardState.selectedOption);
+    const activeWalletDetails = useMemo(() => {
+        const accountName =
+            (walletProvider === "GCash" ? storeSettings.gcashAccountName : storeSettings.mayaAccountName).trim() ||
+            storeSettings.storeName;
+        const accountNumber =
+            (walletProvider === "GCash" ? storeSettings.gcashAccountNumber : storeSettings.mayaAccountNumber).trim();
+        const qrUrl = (walletProvider === "GCash" ? storeSettings.gcashQrUrl : storeSettings.mayaQrUrl).trim();
+        const missingFields: string[] = [];
+
+        if (!qrUrl) {
+            missingFields.push("QR code");
+        }
+
+        if (!accountNumber) {
+            missingFields.push("account number");
+        }
+
+        return {
+            accountName,
+            accountNumber,
+            qrUrl,
+            isConfigured: missingFields.length === 0,
+            missingFields,
+        };
+    }, [
+        storeSettings.gcashAccountName,
+        storeSettings.gcashAccountNumber,
+        storeSettings.gcashQrUrl,
+        storeSettings.mayaAccountName,
+        storeSettings.mayaAccountNumber,
+        storeSettings.mayaQrUrl,
+        storeSettings.storeName,
+        walletProvider,
+    ]);
 
     useEffect(() => {
         if (!user?.id || !isOpen) return;
@@ -1075,7 +1109,7 @@ export default function CartDrawer({
                                     </div>
                                     <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-1 text-center">Scan to Pay</h3>
                                     <p className="text-slate-500 text-sm mb-4 text-center">
-                                        Send exactly <strong className="text-emerald-700 font-bold">PHP {totalPayment}</strong> to proceed.
+                                        Send exactly <strong className="text-emerald-700 font-bold">PHP {totalPayment.toFixed(2)}</strong> to proceed.
                                     </p>
                                     <div className="mb-6 grid w-full grid-cols-2 gap-2 rounded-lg bg-slate-100 p-1">
                                         <button
@@ -1093,27 +1127,49 @@ export default function CartDrawer({
                                     </div>
 
                                     <div className="w-48 h-48 bg-slate-100 rounded-lg mb-6 flex items-center justify-center border-2 border-dashed border-slate-300 relative overflow-hidden">
-                                        {/* Placeholder QR Image - swap with real one later */}
-                                        <Image src="/placeholder.png" alt="QR Code" fill className="object-cover opacity-30 mix-blend-multiply" />
-                                        <QrCode className="w-12 h-12 text-slate-400 absolute" />
+                                        {activeWalletDetails.qrUrl ? (
+                                            <Image
+                                                src={activeWalletDetails.qrUrl}
+                                                alt={`${walletProvider} QR code`}
+                                                fill
+                                                className="object-contain bg-white p-3"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-50 px-4 text-center text-slate-400">
+                                                <QrCode className="w-12 h-12" />
+                                                <p className="text-xs font-medium text-slate-500">
+                                                    {walletProvider} QR is not available yet.
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="w-full bg-slate-50 rounded-md p-4 mb-6 border border-slate-100">
                                         <div className="flex justify-between items-center mb-2">
                                             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Account Name</span>
-                                            <span className="text-sm font-bold text-slate-900">Ate Ai</span>
+                                            <span className="text-sm font-bold text-slate-900">{activeWalletDetails.accountName}</span>
                                         </div>
                                         <div className="flex justify-between items-center">
                                             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Account Number</span>
-                                            <span className="text-sm font-bold text-slate-900 tracking-tight font-mono">+63 912 345 6789</span>
+                                            <span className="text-sm font-bold text-slate-900 tracking-tight font-mono">
+                                                {activeWalletDetails.accountNumber || "Not configured yet"}
+                                            </span>
                                         </div>
                                     </div>
+
+                                    {!activeWalletDetails.isConfigured && (
+                                        <div className="mb-4 w-full rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                            {walletProvider} payment is not ready yet. Missing {activeWalletDetails.missingFields.join(" and ")} in admin settings.
+                                        </div>
+                                    )}
+
                                     <motion.button
                                         whileTap={{ scale: 0.96 }}
                                         onClick={() => setPaymentStep("upload")}
-                                        className="w-full bg-emerald-700 text-white font-bold rounded-md py-4 shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors"
+                                        disabled={!activeWalletDetails.isConfigured}
+                                        className="w-full bg-emerald-700 text-white font-bold rounded-md py-4 shadow-lg shadow-emerald-700/20 hover:bg-emerald-800 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                     >
-                                        I have paid, Next Step
+                                        {activeWalletDetails.isConfigured ? "I have paid, Next Step" : "Wallet setup pending"}
                                     </motion.button>
                                 </>
                             ) : (

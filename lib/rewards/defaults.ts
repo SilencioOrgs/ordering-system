@@ -161,6 +161,14 @@ export function getDefaultStoreSettings(): StoreSettings {
     storeAddress: "Poblacion, San Pedro, Laguna",
     deliveryFee: 50,
     advanceNoticeDays: 3,
+    gcashAccountName: "Ate Ai's Kitchen",
+    gcashAccountNumber: "",
+    gcashQrUrl: "",
+    gcashQrPublicId: "",
+    mayaAccountName: "Ate Ai's Kitchen",
+    mayaAccountNumber: "",
+    mayaQrUrl: "",
+    mayaQrPublicId: "",
   };
 }
 
@@ -214,6 +222,24 @@ export function normalizeStoreSettings(value: unknown): StoreSettings {
         : fallback.storeAddress,
     deliveryFee: Math.max(0, toNumber(record.deliveryFee, fallback.deliveryFee)),
     advanceNoticeDays: Math.max(0, Math.floor(toNumber(record.advanceNoticeDays, fallback.advanceNoticeDays))),
+    gcashAccountName:
+      typeof record.gcashAccountName === "string" && record.gcashAccountName.trim()
+        ? record.gcashAccountName.trim()
+        : fallback.gcashAccountName,
+    gcashAccountNumber:
+      typeof record.gcashAccountNumber === "string" ? record.gcashAccountNumber.trim() : fallback.gcashAccountNumber,
+    gcashQrUrl: typeof record.gcashQrUrl === "string" ? record.gcashQrUrl.trim() : fallback.gcashQrUrl,
+    gcashQrPublicId:
+      typeof record.gcashQrPublicId === "string" ? record.gcashQrPublicId.trim() : fallback.gcashQrPublicId,
+    mayaAccountName:
+      typeof record.mayaAccountName === "string" && record.mayaAccountName.trim()
+        ? record.mayaAccountName.trim()
+        : fallback.mayaAccountName,
+    mayaAccountNumber:
+      typeof record.mayaAccountNumber === "string" ? record.mayaAccountNumber.trim() : fallback.mayaAccountNumber,
+    mayaQrUrl: typeof record.mayaQrUrl === "string" ? record.mayaQrUrl.trim() : fallback.mayaQrUrl,
+    mayaQrPublicId:
+      typeof record.mayaQrPublicId === "string" ? record.mayaQrPublicId.trim() : fallback.mayaQrPublicId,
   };
 }
 

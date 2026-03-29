@@ -55,6 +55,14 @@ export type StoreSettings = {
   storeAddress: string;
   deliveryFee: number;
   advanceNoticeDays: number;
+  gcashAccountName: string;
+  gcashAccountNumber: string;
+  gcashQrUrl: string;
+  gcashQrPublicId: string;
+  mayaAccountName: string;
+  mayaAccountNumber: string;
+  mayaQrUrl: string;
+  mayaQrPublicId: string;
 };
 
 export type RewardSettings = {
