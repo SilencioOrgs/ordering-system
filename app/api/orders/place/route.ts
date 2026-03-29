@@ -63,6 +63,15 @@ type OrderItemPayload = {
   price: number;
 };
 
+function isGeneratedTotalInsertError(message: string | undefined) {
+  if (!message) return false;
+
+  return (
+    message.includes('cannot insert a non-DEFAULT value into column "total"') ||
+    message.includes("cannot insert a non-DEFAULT value into column \"total\"")
+  );
+}
+
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -289,44 +298,66 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { data: order, error: orderError } = await supabase
+  const baseOrderInsertPayload = {
+    user_id: user.id,
+    customer_name: body.customerName?.trim() || user.email || "Customer",
+    customer_phone: body.customerPhone?.trim() || "",
+    delivery_mode: deliveryMode,
+    delivery_address: deliveryMode === "Delivery" ? normalizedAddress?.address ?? null : null,
+    delivery_lat: deliveryMode === "Delivery" ? normalizedAddress?.lat ?? null : null,
+    delivery_lng: deliveryMode === "Delivery" ? normalizedAddress?.lng ?? null : null,
+    region_code: deliveryMode === "Delivery" ? normalizedAddress?.regionCode ?? null : null,
+    region_name: deliveryMode === "Delivery" ? normalizedAddress?.regionName ?? null : null,
+    province_code: deliveryMode === "Delivery" ? normalizedAddress?.provinceCode ?? null : null,
+    province_name: deliveryMode === "Delivery" ? normalizedAddress?.provinceName ?? null : null,
+    city_municipality_code: deliveryMode === "Delivery" ? normalizedAddress?.cityMunicipalityCode ?? null : null,
+    city_municipality_name: deliveryMode === "Delivery" ? normalizedAddress?.cityMunicipalityName ?? null : null,
+    barangay_code: deliveryMode === "Delivery" ? normalizedAddress?.barangayCode ?? null : null,
+    barangay_name: deliveryMode === "Delivery" ? normalizedAddress?.barangayName ?? null : null,
+    street_address: deliveryMode === "Delivery" ? normalizedAddress?.streetAddress ?? null : null,
+    landmark: deliveryMode === "Delivery" ? normalizedAddress?.landmark ?? null : null,
+    complete_address: deliveryMode === "Delivery" ? normalizedAddress?.completeAddress ?? null : null,
+    payment_method: paymentMethod,
+    payment_status: paymentStatus,
+    payment_proof_url: body.paymentProofUrl?.trim() || null,
+    status: orderStatus,
+    discount_amount: rewardBreakdown.discountAmount,
+    shipping_discount_amount: rewardBreakdown.shippingDiscountAmount,
+    reward_source: selectedReward?.source ?? null,
+    applied_reward_id: selectedReward?.id ?? null,
+    applied_reward_title: selectedReward?.title ?? null,
+    reward_snapshot: selectedReward ?? null,
+    scheduled_date: scheduledDate,
+  };
+
+  const primaryOrderInsertPayload = {
+    ...baseOrderInsertPayload,
+    subtotal,
+    delivery_fee: deliveryFee,
+    total: rewardBreakdown.total,
+  };
+
+  const legacyCompatibleOrderInsertPayload = {
+    ...baseOrderInsertPayload,
+    subtotal: Math.max(0, subtotal - rewardBreakdown.discountAmount),
+    delivery_fee: Math.max(0, deliveryFee - rewardBreakdown.shippingDiscountAmount),
+  };
+
+  let orderInsertResponse = await supabase
     .from("orders")
-    .insert({
-      user_id: user.id,
-      customer_name: body.customerName?.trim() || user.email || "Customer",
-      customer_phone: body.customerPhone?.trim() || "",
-      delivery_mode: deliveryMode,
-      delivery_address: deliveryMode === "Delivery" ? normalizedAddress?.address ?? null : null,
-      delivery_lat: deliveryMode === "Delivery" ? normalizedAddress?.lat ?? null : null,
-      delivery_lng: deliveryMode === "Delivery" ? normalizedAddress?.lng ?? null : null,
-      region_code: deliveryMode === "Delivery" ? normalizedAddress?.regionCode ?? null : null,
-      region_name: deliveryMode === "Delivery" ? normalizedAddress?.regionName ?? null : null,
-      province_code: deliveryMode === "Delivery" ? normalizedAddress?.provinceCode ?? null : null,
-      province_name: deliveryMode === "Delivery" ? normalizedAddress?.provinceName ?? null : null,
-      city_municipality_code: deliveryMode === "Delivery" ? normalizedAddress?.cityMunicipalityCode ?? null : null,
-      city_municipality_name: deliveryMode === "Delivery" ? normalizedAddress?.cityMunicipalityName ?? null : null,
-      barangay_code: deliveryMode === "Delivery" ? normalizedAddress?.barangayCode ?? null : null,
-      barangay_name: deliveryMode === "Delivery" ? normalizedAddress?.barangayName ?? null : null,
-      street_address: deliveryMode === "Delivery" ? normalizedAddress?.streetAddress ?? null : null,
-      landmark: deliveryMode === "Delivery" ? normalizedAddress?.landmark ?? null : null,
-      complete_address: deliveryMode === "Delivery" ? normalizedAddress?.completeAddress ?? null : null,
-      payment_method: paymentMethod,
-      payment_status: paymentStatus,
-      payment_proof_url: body.paymentProofUrl?.trim() || null,
-      status: orderStatus,
-      subtotal,
-      delivery_fee: deliveryFee,
-      total: rewardBreakdown.total,
-      discount_amount: rewardBreakdown.discountAmount,
-      shipping_discount_amount: rewardBreakdown.shippingDiscountAmount,
-      reward_source: selectedReward?.source ?? null,
-      applied_reward_id: selectedReward?.id ?? null,
-      applied_reward_title: selectedReward?.title ?? null,
-      reward_snapshot: selectedReward ?? null,
-      scheduled_date: scheduledDate,
-    })
+    .insert(primaryOrderInsertPayload)
     .select("id, order_number")
     .single();
+
+  if (orderInsertResponse.error && isGeneratedTotalInsertError(orderInsertResponse.error.message)) {
+    orderInsertResponse = await supabase
+      .from("orders")
+      .insert(legacyCompatibleOrderInsertPayload)
+      .select("id, order_number")
+      .single();
+  }
+
+  const { data: order, error: orderError } = orderInsertResponse;
 
   if (orderError || !order) {
     return NextResponse.json({ error: orderError?.message ?? "Failed to create order" }, { status: 500 });
