@@ -1,8 +1,8 @@
 ﻿"use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Leaf, Truck, ShieldCheck, ArrowRight, ShoppingCart, Star, ChevronDown, X, ShoppingBag, Phone, Mail, ChevronRight, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Leaf, Truck, ShieldCheck, ArrowRight, ShoppingCart, Star, ChevronDown, X, ShoppingBag } from "lucide-react";
 
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -15,10 +15,7 @@ export default function LandingView() {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [openFaq, setOpenFaq] = useState<number | null>(null);
     const [authTab, setAuthTab] = useState<"login" | "signup">("login");
-    const [signupMethod, setSignupMethod] = useState<"phone" | "email" | null>(null);
-    const [signupStep, setSignupStep] = useState<"method" | "otp">("method");
-    const [codeSent, setCodeSent] = useState(false);
-    const [otpValue, setOtpValue] = useState(["", "", "", "", "", ""]);
+    const [signupStep, setSignupStep] = useState<"form">("form");
     const [signupInput, setSignupInput] = useState("");
     const [loginEmail, setLoginEmail] = useState("");
     const [loginPassword, setLoginPassword] = useState("");
@@ -26,16 +23,12 @@ export default function LandingView() {
     const [signupFullName, setSignupFullName] = useState("");
     const [authLoading, setAuthLoading] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
-    const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
     const { products } = useProducts();
     const bestSellers = products.filter((p) => p.isBestSeller).slice(0, 4);
 
     const resetSignupState = () => {
         setAuthTab("login");
-        setSignupMethod(null);
-        setSignupStep("method");
-        setCodeSent(false);
-        setOtpValue(["", "", "", "", "", ""]);
+        setSignupStep("form");
         setSignupInput("");
         setLoginEmail("");
         setLoginPassword("");
@@ -50,14 +43,7 @@ export default function LandingView() {
         resetSignupState();
     };
 
-    const selectSignupMethod = (method: "phone" | "email") => {
-        setSignupMethod(method);
-        setSignupStep("otp");
-        setCodeSent(false);
-        setSignupInput("");
-        setOtpValue(["", "", "", "", "", ""]);
-        setAuthError(null);
-    };
+
 
     const handleLogin = async () => {
         setAuthError(null);
@@ -102,45 +88,19 @@ export default function LandingView() {
         setAuthLoading(true);
         const supabase = createClient();
 
-        if (signupMethod === "email") {
-            const { error } = await supabase.auth.signUp({
-                email: signupInput,
-                password: signupPassword,
-                options: { data: { full_name: signupFullName } },
-            });
-            if (error) {
-                setAuthError(error.message);
-                setAuthLoading(false);
-                return;
-            }
-        } else {
-            const { error } = await supabase.auth.signInWithOtp({ phone: signupInput });
-            if (error) {
-                setAuthError(error.message);
-                setAuthLoading(false);
-                return;
-            }
+        const { error } = await supabase.auth.signUp({
+            email: signupInput,
+            password: signupPassword,
+            options: { data: { full_name: signupFullName } },
+        });
+        if (error) {
+            setAuthError(error.message);
+            setAuthLoading(false);
+            return;
         }
 
         setAuthLoading(false);
         closeAuthModal();
-    };
-
-    const handleOtpInput = (index: number, value: string) => {
-        const cleaned = value.replace(/\D/g, "").slice(-1);
-        const nextValue = [...otpValue];
-        nextValue[index] = cleaned;
-        setOtpValue(nextValue);
-
-        if (cleaned && index < otpRefs.current.length - 1) {
-            otpRefs.current[index + 1]?.focus();
-        }
-    };
-
-    const handleOtpBackspace = (index: number, key: string) => {
-        if (key === "Backspace" && !otpValue[index] && index > 0) {
-            otpRefs.current[index - 1]?.focus();
-        }
     };
 
     return (
@@ -703,177 +663,75 @@ export default function LandingView() {
                                     </>
                                 )}
 
-                                {authTab === "signup" && signupStep === "method" && (
+                                {authTab === "signup" && signupStep === "form" && (
                                     <>
                                         <div>
-                                            <h3 className="text-xl font-bold text-slate-900">Create your account</h3>
-                                            <p className="text-sm text-slate-500 mt-1">Choose how you&apos;d like to register</p>
-                                        </div>
-
-                                        <button
-                                            onClick={() => selectSignupMethod("phone")}
-                                            className="border border-slate-200 rounded-lg p-4 flex items-center gap-4 hover:bg-slate-50 cursor-pointer transition-colors w-full text-left"
-                                        >
-                                            <div className="bg-emerald-50 text-emerald-700 rounded-md p-2 shrink-0">
-                                                <Phone className="w-5 h-5" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="font-bold text-slate-800">Continue with Phone Number</p>
-                                                <p className="text-sm text-slate-500">We&apos;ll send a 6-digit OTP</p>
-                                            </div>
-                                            <ChevronRight className="w-5 h-5 text-slate-300 shrink-0" />
-                                        </button>
-
-                                        <button
-                                            onClick={() => selectSignupMethod("email")}
-                                            className="border border-slate-200 rounded-lg p-4 flex items-center gap-4 hover:bg-slate-50 cursor-pointer transition-colors w-full text-left"
-                                        >
-                                            <div className="bg-blue-50 text-blue-600 rounded-md p-2 shrink-0">
-                                                <Mail className="w-5 h-5" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="font-bold text-slate-800">Continue with Email Address</p>
-                                                <p className="text-sm text-slate-500">We&apos;ll send a verification code</p>
-                                            </div>
-                                            <ChevronRight className="w-5 h-5 text-slate-300 shrink-0" />
-                                        </button>
-
-                                        <div className="relative my-2">
-                                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100" /></div>
-                                            <div className="relative flex justify-center"><span className="bg-white px-3 text-xs text-slate-400">or</span></div>
-                                        </div>
-
-                                        <button
-                                            onClick={handleGoogleSignIn}
-                                            disabled={authLoading}
-                                            className="border border-slate-200 rounded-lg p-4 flex items-center gap-4 hover:bg-slate-50 cursor-pointer transition-colors w-full text-left"
-                                        >
-                                            <div className="w-9 h-9 bg-white rounded-md border border-slate-200 flex items-center justify-center shrink-0">
-                                                <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                                                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                                                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                                                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                                                </svg>
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="font-bold text-slate-800">Continue with Google</p>
-                                                <p className="text-sm text-slate-500">Quick sign-up with your Google account</p>
-                                            </div>
-                                            <ChevronRight className="w-5 h-5 text-slate-300 shrink-0" />
-                                        </button>
-                                    </>
-                                )}
-
-                                {authTab === "signup" && signupStep === "otp" && (
-                                    <>
-                                        <button
-                                            onClick={() => {
-                                                setSignupStep("method");
-                                                setCodeSent(false);
-                                                setOtpValue(["", "", "", "", "", ""]);
-                                            }}
-                                            className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors"
-                                        >
-                                            <ArrowLeft className="w-4 h-4 text-slate-600" />
-                                        </button>
-
-                                        <div>
-                                            <h3 className="text-xl font-bold text-slate-900">{signupMethod === "phone" ? "Enter your phone number" : "Enter your email address"}</h3>
-                                        </div>
-
-                                        {signupMethod === "email" && (
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
-                                                <input
-                                                    type="text"
-                                                    value={signupFullName}
-                                                    onChange={(e) => setSignupFullName(e.target.value)}
-                                                    placeholder="Juan Dela Cruz"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg py-3 px-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all font-medium"
-                                                />
-                                            </div>
-                                        )}
-
-                                        <div className="relative">
-                                            {signupMethod === "phone" && (
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm">PH</span>
-                                            )}
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
                                             <input
-                                                type={signupMethod === "phone" ? "tel" : "email"}
-                                                value={signupInput}
-                                                onChange={(e) => setSignupInput(e.target.value)}
-                                                placeholder={signupMethod === "phone" ? "+63 9XX XXX XXXX" : "you@email.com"}
-                                                className={`w-full bg-slate-50 border border-slate-200 rounded-lg py-3 ${signupMethod === "phone" ? "pl-10" : "pl-4"} pr-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all font-medium`}
+                                                type="text"
+                                                value={signupFullName}
+                                                onChange={(e) => setSignupFullName(e.target.value)}
+                                                placeholder="Juan Dela Cruz"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-3 px-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all font-medium"
                                             />
                                         </div>
 
-                                        {signupMethod === "email" && (
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                                                <input
-                                                    type="password"
-                                                    value={signupPassword}
-                                                    onChange={(e) => setSignupPassword(e.target.value)}
-                                                    placeholder="Create a password"
-                                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg py-3 px-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all font-medium"
-                                                />
-                                            </div>
-                                        )}
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                                            <input
+                                                type="email"
+                                                value={signupInput}
+                                                onChange={(e) => setSignupInput(e.target.value)}
+                                                placeholder="you@email.com"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-3 px-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all font-medium"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                                            <input
+                                                type="password"
+                                                value={signupPassword}
+                                                onChange={(e) => setSignupPassword(e.target.value)}
+                                                placeholder="Create a password"
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-3 px-4 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-500 transition-all font-medium"
+                                            />
+                                        </div>
 
                                         <motion.button
                                             whileTap={{ scale: 0.98 }}
                                             onClick={handleSignUp}
                                             disabled={authLoading}
-                                            className="w-full bg-emerald-700 text-white font-semibold rounded-lg py-3 shadow-md shadow-emerald-700/20 hover:bg-emerald-800 transition-colors"
+                                            className="w-full bg-emerald-700 text-white font-semibold rounded-lg py-3 mt-2 shadow-md shadow-emerald-700/20 hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
-                                            {authLoading ? "Please wait..." : signupMethod === "phone" ? "Send OTP Code" : "Create Account"}
+                                            {authLoading ? "Creating account..." : "Create Account"}
                                         </motion.button>
 
-                                        {codeSent && (
-                                            <>
-                                                <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-3 flex items-start gap-2">
-                                                    <CheckCircle2 className="w-4 h-4 text-emerald-700 mt-0.5 shrink-0" />
-                                                    <p className="text-sm text-emerald-800">Code sent to {signupInput}</p>
-                                                </div>
+                                        <div className="relative py-2">
+                                            <div className="absolute inset-x-0 top-1/2 h-px bg-slate-100 -translate-y-1/2"></div>
+                                            <div className="relative flex justify-center">
+                                                <span className="bg-white px-4 text-xs font-medium text-slate-400">or continue with</span>
+                                            </div>
+                                        </div>
 
-                                                <div className="flex items-center gap-2">
-                                                    {otpValue.map((digit, idx) => (
-                                                        <input
-                                                            key={idx}
-                                                            ref={(el) => { otpRefs.current[idx] = el; }}
-                                                            type="text"
-                                                            inputMode="numeric"
-                                                            maxLength={1}
-                                                            value={digit}
-                                                            onInput={(e) => handleOtpInput(idx, (e.target as HTMLInputElement).value)}
-                                                            onKeyDown={(e) => handleOtpBackspace(idx, e.key)}
-                                                            className="w-10 h-12 text-center border border-slate-200 rounded-md text-lg font-bold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
-                                                        />
-                                                    ))}
-                                                </div>
-
-                                                <div className="text-sm text-slate-500">
-                                                    Didn&apos;t receive it?{" "}
-                                                    <button
-                                                        onClick={handleSignUp}
-                                                        className="text-emerald-700 font-semibold cursor-pointer"
-                                                    >
-                                                        Resend Code
-                                                    </button>
-                                                </div>
-
-                                                <motion.button
-                                                    whileTap={{ scale: 0.98 }}
-                                                    onClick={handleSignUp}
-                                                    className="w-full bg-emerald-700 text-white font-semibold rounded-lg py-3 shadow-md shadow-emerald-700/20 hover:bg-emerald-800 transition-colors"
-                                                >
-                                                    Verify & Create Account
-                                                </motion.button>
-                                            </>
-                                        )}
+                                        <motion.button
+                                            whileTap={{ scale: 0.98 }}
+                                            onClick={handleGoogleSignIn}
+                                            disabled={authLoading}
+                                            className="w-full bg-white border border-slate-200 text-slate-700 font-medium rounded-lg py-3 hover:bg-slate-50 transition-colors flex items-center justify-center gap-3"
+                                        >
+                                            <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                                                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                                                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                                                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                                            </svg>
+                                            Sign Up with Google
+                                        </motion.button>
                                     </>
                                 )}
+
+
                             </div>
                         </motion.div>
                     </div>
